@@ -147,7 +147,7 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
   -c CAT, --category=CAT    category to assign the uploaded package.\n\
                               This will default to the current category\n\
                               for pre-existing packages and 'None' for new\n\
-                              packages. -C help will give a list of valid categories\n\
+                              packages. -c help will give a list of valid categories\n\
   -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
   VERSION);
 }
