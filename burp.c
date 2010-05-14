@@ -456,8 +456,10 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
+  /*
   if (config->user == NULL || config->password == NULL)
     read_config_file();
+    */
 
   if (config->user == NULL)
     config->user = get_username();
