@@ -43,6 +43,11 @@
 
 #define FREE(x) do { free(x); x = NULL; } while (0)
 
+static const char *categories[] = {
+  "daemons", "devel", "editors", "emulators", "games", "gnome", "i18n", "kde",
+  "lib", "modules", "multimedia", "network", "office", "science", "system",
+  "x11", "xfce", "kernels", NULL};
+
 struct config_t {
   char *user;
   char *password;
@@ -101,6 +106,8 @@ static void config_free(struct config_t *config) {
     free(config->password);
   if (config->cookies)
     free(config->cookies);
+  if (config->category && strcmp(config->category, "None") != 0)
+    free(config->category);
 
   free(config);
 }
@@ -112,12 +119,32 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
  Options:\n\
   -u, --user                AUR login username\n\
   -p, --password            AUR login password\n\
-  -C CAT, --category=CAT    category to assign the uploaded package.\n\
+  -c CAT, --category=CAT    category to assign the uploaded package.\n\
                               This will default to the current category\n\
                               for pre-existing packages and 'None' for new\n\
-                              packages.\n\
+                              packages. -C help will give a list of valid categories\n\
   -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
   VERSION);
+}
+
+static void usage_categories() {
+  int i;
+
+  printf("Valid categories are:\n");
+  for (i = 0; (categories[i]) != NULL; i++)
+    printf("\t%s\n", categories[i]);
+  putchar('\n');
+
+}
+
+static int category_is_valid(const char *cat) {
+  int i;
+
+  for (i = 0; (categories[i]) != NULL; i++)
+    if (strcmp(categories[i], cat) == 0)
+      return 0;
+
+  return 1;
 }
 
 
@@ -286,12 +313,72 @@ cleanup:
   free(response.memory);
   curl_slist_free_all(headers);
   curl_formfree(post);
-  curl_easy_cleanup(curl);
+
+  return ret;
+}
+
+long aur_upload(const char *taurball) {
+  char *fullpath;
+
+  fullpath = realpath(taurball, NULL);
+  if (fullpath == NULL) {
+    perror("burp: error uploading file");
+    return 1L;
+  }
+
+  CURLcode status;
+  long ret;
+  struct curl_httppost *post, *last;
+  struct curl_slist *headers;
+  static struct write_result response;
+
+  if (config->verbose > 1)
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
+  ret = 0;
+  post = last = NULL;
+  headers = NULL;
+  response.memory = NULL;
+  response.size = 0;
+
+  curl_formadd(&post, &last,
+    CURLFORM_COPYNAME, "pkgsubmit",
+    CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
+  curl_formadd(&post, &last,
+    CURLFORM_COPYNAME, "category",
+    CURLFORM_COPYCONTENTS, config->category, CURLFORM_END);
+  curl_formadd(&post, &last,
+    CURLFORM_COPYNAME, "pfile",
+    CURLFORM_FILENAME, fullpath, CURLFORM_END);
+
+  headers = curl_slist_append(headers, "Expect:");
+
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
+
+  status = curl_easy_perform(curl);
+  if (status != 0) {
+    fprintf(stderr, "curl error\n");
+    ret = status;
+    goto cleanup;
+  }
+
+  printf("%s", response.memory);
+
+cleanup:
+  free(fullpath);
+  free(response.memory);
+  curl_slist_free_all(headers);
+  curl_formfree(post);
 
   return ret;
 }
 
 void read_config_file() {
+  /* XXX: Unfinished */
   struct stat st;
   char *line;
   char config_path[PATH_MAX + 1];
@@ -312,7 +399,6 @@ void read_config_file() {
   getline(&line, NULL, conf_fd);
 
   printf("%s\n", line);
-
 }
 
 int main(int argc, char **argv) {
@@ -334,12 +420,20 @@ int main(int argc, char **argv) {
     printf("config->verbose = %d\n", config->verbose);
   }
 
+  /* Ensure we have a proper config environment */
+  if (config->category == NULL)
+    config->category = "None";
+  else
+    if (category_is_valid(config->category) > 0) {
+      usage_categories();
+      goto cleanup;
+    }
+
   if (targets == NULL) {
     usage();
     goto cleanup;
   }
 
-  /* Ensure we have a proper config environment */
   if (config->user == NULL || config->password == NULL)
     read_config_file();
 
@@ -354,22 +448,17 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  if (config->category == NULL)
-    config->category = "None";
-
   curl_global_init(CURL_GLOBAL_NOTHING);
 
-  if (aur_login() != 0)
-    goto cleanup;
+  if (aur_login() == 0)
+    for (l = targets; l; l = l->next)
+      aur_upload((const char*)l->data);
 
-  for (l = targets; l; l = l->next) {
-    printf("target: %s\n", (const char*)l->data);
-    /* upload */
-  }
-
-  /* object destruction */
-cleanup:
+  if (curl != NULL)
+    curl_easy_cleanup(curl);
   curl_global_cleanup();
+
+cleanup:
   llist_free(targets, free);
   delete_file(config->cookies);
   config_free(config);
