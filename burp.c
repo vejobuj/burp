@@ -44,6 +44,7 @@ struct config_t {
   char *user;
   char *password;
   char *cookies;
+  char *category;
   int verbose;
 };
 
@@ -84,7 +85,7 @@ static struct config_t *config_new(struct config_t *config) {
     return NULL;
   }
 
-  config->user = config->password = config->cookies = NULL;
+  config->user = config->password = config->cookies = config->category = NULL;
   config->verbose = 0;
 
   return config;
@@ -108,6 +109,10 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
  Options:\n\
   -u, --user                AUR login username\n\
   -p, --password            AUR login password\n\
+  -C CAT, --category=CAT    category to assign the uploaded package.\n\
+                              This will default to the current category\n\
+                              for pre-existing packages and 'None' for new\n\
+                              packages.\n\
   -c, FILE --cookies=FILE   save cookies to FILE\n\
   -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
   VERSION);
@@ -122,6 +127,7 @@ static int parseargs(int argc, char **argv) {
     {"user",      required_argument,  0, 'u'},
     {"password",  required_argument,  0, 'p'},
     {"cookies",   required_argument,  0, 'c'},
+    {"category",  required_argument,  0, 'C'},
     {"verbose",   no_argument,        0, 'v'},
     {0, 0, 0, 0}
   };
@@ -132,20 +138,25 @@ static int parseargs(int argc, char **argv) {
     }
 
     switch (opt) {
-      case 'u':
-        if (config->user)
-          FREE(config->user);
-        config->user = strndup(optarg, USER_MAX);
+      case 'C':
+        if (config->category)
+          FREE(config->category);
+        config->category = strndup(optarg, 16);
+        break;
+      case 'c':
+        if (config->cookies)
+          FREE(config->cookies);
+        config->cookies = strndup(optarg, PATH_MAX);
         break;
       case 'p':
         if (config->password)
           FREE(config->password);
         config->password = strndup(optarg, PASSWORD_MAX);
         break;
-      case 'c':
-        if (config->cookies)
-          FREE(config->cookies);
-        config->cookies = strndup(optarg, PATH_MAX);
+      case 'u':
+        if (config->user)
+          FREE(config->user);
+        config->user = strndup(optarg, USER_MAX);
         break;
       case 'v':
         config->verbose++;
@@ -309,6 +320,7 @@ int main(int argc, char **argv) {
     printf("config->user = %s\n", config->user);
     printf("config->password = %s\n", config->password);
     printf("config->cookies = %s\n", config->cookies);
+    printf("config->category = %s\n", config->category);
     printf("config->verbose = %d\n", config->verbose);
   }
 
@@ -331,6 +343,9 @@ int main(int argc, char **argv) {
     perror("error creating cookie file");
     goto cleanup;
   }
+
+  if (config->category == NULL)
+    config->category = "None";
 
   if (aur_login() != 0)
     goto cleanup;
