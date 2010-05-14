@@ -17,12 +17,13 @@ doc:
 
 install: all
 	@echo installing executable to ${DESTDIR}/usr/bin
-	mkdir -p ${DESTDIR}/usr/bin
-	cp -f burp ${DESTDIR}/usr/bin
-	chmod 755 ${DESTDIR}/usr/bin/burp
-	@mkdir -p ${DESTDIR}/man1
-	@sed "s/VERSION/${VERSION}/g" < burp.1 > ${DESTDIR}/man1/burp.1
-	@chmod 644 ${DESTDIR}/man1/burp.1
+	@mkdir -p ${DESTDIR}/usr/bin
+	@cp -f burp ${DESTDIR}/usr/bin
+	@chmod 755 ${DESTDIR}/usr/bin/burp
+	@echo installing man page to ${DESTDIR}${MANPREFIX}
+	@mkdir -p ${DESTDIR}${MANPREFIX}/man1
+	@sed "s/VERSION/${VERSION}/g" < burp.1 > ${DESTDIR}${MANPREFIX}/man1/burp.1
+	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/burp.1
 
 
 clean:
