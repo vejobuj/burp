@@ -374,8 +374,21 @@ long aur_upload(const char *taurball) {
     goto cleanup;
   }
 
-  /* Should be parsing here for errors from the response */
-  printf("%s", response.memory);
+  if (strstr(response.memory, "not allowed to overwrite") != NULL) {
+    fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
+    ret = 1;
+  } else if (strstr(response.memory, "Unknown file format") != NULL) {
+    fprintf(stderr, "Error: Incorrect file format. Upload must conform to AUR "
+                    "packaging guidelines.\n");
+    ret = 1;
+  } else {
+    char *basename;
+    if ((basename = strrchr(taurball, '/')) != NULL)
+      printf("%s ", basename);
+    else
+      printf("%s ", taurball);
+    printf("has been uploaded sucessfully\n");
+  }
 
 cleanup:
   free(fullpath);
