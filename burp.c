@@ -138,7 +138,7 @@ static void config_free(struct config_t *config) {
 }
 
 static void usage() {
-printf("burp v%s\n\
+printf("burp %s\n\
 Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 \n\
  Options:\n\
