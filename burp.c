@@ -225,7 +225,7 @@ static int parseargs(int argc, char **argv) {
   return 0;
 }
 
-char *get_username(void) {
+static char *get_username(void) {
   char *buf;
 
   printf("Enter username: ");
@@ -239,7 +239,7 @@ char *get_username(void) {
   return buf;
 }
 
-char *get_password(void) {
+static char *get_password(void) {
   struct termios t;
   char *buf;
 
@@ -262,7 +262,7 @@ char *get_password(void) {
   return buf;
 }
 
-int set_cookie_filepath(char **filename) {
+static int set_cookie_filepath(char **filename) {
   if (*filename != NULL)
     FREE(*filename);
 
@@ -272,14 +272,14 @@ int set_cookie_filepath(char **filename) {
   return *filename == NULL;
 }
 
-void delete_file(const char *filename) {
+static void delete_file(const char *filename) {
   struct stat st;
 
   if (stat(filename, &st) == 0)
     unlink(filename);
 }
 
-void curl_local_init() {
+static void curl_local_init() {
   curl = curl_easy_init();
 
   if (config->verbose > 1)
@@ -289,7 +289,7 @@ void curl_local_init() {
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 }
 
-long aur_login(void) {
+static long aur_login(void) {
   long ret, code;
   CURLcode status;
   struct curl_httppost *post, *last;
@@ -345,7 +345,7 @@ cleanup:
   return ret;
 }
 
-long aur_upload(const char *taurball) {
+static long aur_upload(const char *taurball) {
   char *fullpath;
 
   fullpath = realpath(taurball, NULL);
@@ -425,7 +425,7 @@ cleanup:
   return ret;
 }
 
-int read_config_file() {
+static int read_config_file() {
   int ret;
   struct stat st;
   char *ptr;
