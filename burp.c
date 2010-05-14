@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <termios.h>
+#include <unistd.h>
 
 #include "llist.h"
 
@@ -37,6 +38,8 @@
 #define AUR_LOGIN_FAIL_MSG  "Bad username or password."
 #define AUR_LOGIN_URL       "http://aur.archlinux.org/"
 #define AUR_SUBMIT_URL      "http://aur.archlinux.org/pkgsubmit.php"
+
+#define COOKIEFILE_DEFAULT  "/tmp/burp-%d.cookies"
 
 #define FREE(x) do { free(x); x = NULL; } while (0)
 
@@ -113,7 +116,6 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
                               This will default to the current category\n\
                               for pre-existing packages and 'None' for new\n\
                               packages.\n\
-  -c, FILE --cookies=FILE   save cookies to FILE\n\
   -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
   VERSION);
 }
@@ -126,8 +128,7 @@ static int parseargs(int argc, char **argv) {
     /* Operations */
     {"user",      required_argument,  0, 'u'},
     {"password",  required_argument,  0, 'p'},
-    {"cookies",   required_argument,  0, 'c'},
-    {"category",  required_argument,  0, 'C'},
+    {"category",  required_argument,  0, 'c'},
     {"verbose",   no_argument,        0, 'v'},
     {0, 0, 0, 0}
   };
@@ -138,15 +139,10 @@ static int parseargs(int argc, char **argv) {
     }
 
     switch (opt) {
-      case 'C':
+      case 'c':
         if (config->category)
           FREE(config->category);
         config->category = strndup(optarg, 16);
-        break;
-      case 'c':
-        if (config->cookies)
-          FREE(config->cookies);
-        config->cookies = strndup(optarg, PATH_MAX);
         break;
       case 'p':
         if (config->password)
@@ -214,12 +210,25 @@ char *get_password(void) {
   return buf;
 }
 
-int create_cookie_file(const char *filename) {
-  return 0;
+int set_cookie_filepath(char **filename) {
+  if (*filename != NULL)
+    FREE(*filename);
+
+  *filename = calloc(1, PATH_MAX + 1);
+  snprintf(*filename, PATH_MAX, COOKIEFILE_DEFAULT, getpid());
+
+  return *filename == NULL;
 }
 
-int aur_login(void) {
-  int ret;
+void delete_file(const char *filename) {
+  struct stat st;
+
+  if (stat(filename, &st) == 0)
+    unlink(filename);
+}
+
+long aur_login(void) {
+  long ret;
   long code;
   CURLcode status;
   struct curl_httppost *post, *last;
@@ -246,7 +255,7 @@ int aur_login(void) {
   headers = curl_slist_append(headers, "Expect:");
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "/home/haruko/cookies.txt");
+  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -258,19 +267,22 @@ int aur_login(void) {
     fprintf(stderr, "curl error: unable to request data from %s\n", AUR_LOGIN_URL);
     fprintf(stderr, "%s\n", curl_easy_strerror(status));
     ret = status;
+    goto cleanup;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
   if(code != 200) {
     fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    ret = (int)code;
+    ret = code;
+    goto cleanup;
   }
 
   if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
     fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
-    ret = 1; /* Reuse an uncommon curl error */
+    ret = 1L; /* Reuse an uncommon curl error */
   }
 
+cleanup:
   free(response.memory);
   curl_slist_free_all(headers);
   curl_formfree(post);
@@ -287,7 +299,7 @@ void read_config_file() {
   snprintf(&config_path[0], PATH_MAX, "%s/%s", 
     getenv("XDG_CONFIG_HOME"), "burp.conf");
 
-  if (stat(config_path, &st) < 0) {
+  if (stat(config_path, &st) != 0) {
     if (config->verbose > 1)
       printf("::DEBUG:: No config file found\n");
     return;
@@ -337,8 +349,8 @@ int main(int argc, char **argv) {
   if (config->password == NULL)
     config->password = get_password();
 
-  if (create_cookie_file(config->cookies) > 0) {
-    perror("error creating cookie file");
+  if ((set_cookie_filepath(&(config->cookies))) != 0) {
+    fprintf(stderr, "error creating cookie file");
     goto cleanup;
   }
 
@@ -359,7 +371,9 @@ int main(int argc, char **argv) {
 cleanup:
   curl_global_cleanup();
   llist_free(targets, free);
+  delete_file(config->cookies);
   config_free(config);
 
-  return ret;
+  return 0;
+
 }
