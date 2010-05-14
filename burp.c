@@ -19,6 +19,7 @@
 #include <curl/types.h>
 #include <curl/easy.h>
 
+#include <ctype.h>
 #include <getopt.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -84,6 +85,30 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
     mem->memory[mem->size] = 0;
   }
   return realsize;
+}
+
+static char *strtrim(char *str) {
+  char *pch = str;
+
+  if (str == NULL || *str == '\0')
+    return str;
+
+  while (isspace(*pch)) pch++;
+
+  if (pch != str)
+    memmove(str, pch, (strlen(pch) + 1));
+
+  if (*str == '\0')
+    return str;
+
+  pch = (str + strlen(str) - 1);
+
+  while (isspace(*pch))
+    pch--;
+
+  *++pch = '\0';
+
+  return str;
 }
 
 static struct config_t *config_new(struct config_t *config) {
@@ -401,13 +426,12 @@ cleanup:
 }
 
 void read_config_file() {
-  /* XXX: Unfinished */
   struct stat st;
-  char *line;
-  char config_path[PATH_MAX + 1];
+  char *ptr;
+  char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
 
   snprintf(&config_path[0], PATH_MAX, "%s/%s", 
-    getenv("XDG_CONFIG_HOME"), "burp.conf");
+    getenv("XDG_CONFIG_HOME"), "burp/burp.conf");
 
   if (stat(config_path, &st) != 0) {
     if (config->verbose > 1)
@@ -419,9 +443,30 @@ void read_config_file() {
     printf("::DEBUG:: Found config file\n");
 
   FILE *conf_fd = fopen(config_path, "r");
-  getline(&line, NULL, conf_fd);
+  while (fgets(line, BUFSIZ, conf_fd)) {
+    strtrim(line);
 
-  printf("%s\n", line);
+    if (line[0] == '#' || strlen(line) == 0)
+      continue;
+
+    if ((ptr = strchr(line, '#'))) {
+      *ptr = '\0';
+    }
+
+    char *key;
+    key = ptr = line;
+    strsep(&ptr, "=");
+    strtrim(key);
+    strtrim(ptr);
+
+    if (strcmp(key, "User") == 0) {
+      config->user = strdup(ptr);
+    } else if (strcmp(key, "Password") == 0) {
+      config->password = strdup(ptr);
+    }
+  }
+
+  fclose(conf_fd);
 }
 
 int main(int argc, char **argv) {
@@ -457,10 +502,8 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  /*
   if (config->user == NULL || config->password == NULL)
     read_config_file();
-    */
 
   if (config->user == NULL)
     config->user = get_username();
