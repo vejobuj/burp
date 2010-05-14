@@ -4,6 +4,7 @@ CFLAGS=-pipe -O2 -D_GNU_SOURCE -DVERSION=\"${VERSION}\"
 LDFLAGS=-lcurl
 OBJ=llist.o
 
+default: burp
 all: burp doc
 
 burp: burp.c ${OBJ}
