@@ -265,8 +265,7 @@ void curl_local_init() {
 }
 
 long aur_login(void) {
-  long ret;
-  long code;
+  long ret, code;
   CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
@@ -295,7 +294,7 @@ long aur_login(void) {
 
   status = curl_easy_perform(curl);
   if(status != 0) {
-    fprintf(stderr, "curl error: unable to request data from %s\n", AUR_LOGIN_URL);
+    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_LOGIN_URL);
     fprintf(stderr, "%s\n", curl_easy_strerror(status));
     ret = status;
     goto cleanup;
@@ -330,8 +329,8 @@ long aur_upload(const char *taurball) {
     return 1L;
   }
 
+  long ret, code;
   CURLcode status;
-  long ret;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
   static struct write_result response;
@@ -350,7 +349,7 @@ long aur_upload(const char *taurball) {
     CURLFORM_COPYCONTENTS, config->category, CURLFORM_END);
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "pfile",
-    CURLFORM_FILENAME, fullpath, CURLFORM_END);
+    CURLFORM_FILE, fullpath, CURLFORM_END);
 
   headers = curl_slist_append(headers, "Expect:");
 
@@ -362,11 +361,20 @@ long aur_upload(const char *taurball) {
 
   status = curl_easy_perform(curl);
   if (status != 0) {
-    fprintf(stderr, "curl error\n");
+    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_SUBMIT_URL);
+    fprintf(stderr, "%s\n", curl_easy_strerror(status));
     ret = status;
     goto cleanup;
   }
 
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+  if(code != 200) {
+    fprintf(stderr, "curl error: server responded with code %ld\n", code);
+    ret = code;
+    goto cleanup;
+  }
+
+  /* Should be parsing here for errors from the response */
   printf("%s", response.memory);
 
 cleanup:
