@@ -246,18 +246,18 @@ int aur_login(void) {
   if(status != 0) {
     fprintf(stderr, "curl error: unable to request data from %s\n", AUR_LOGIN_URL);
     fprintf(stderr, "%s\n", curl_easy_strerror(status));
-    return status;
+    ret = status;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
   if(code != 200) {
     fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    return -1;
+    ret = (int)code;
   }
 
   if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
     fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
-    ret = -1;
+    ret = 1; /* Reuse an uncommon curl error */
   }
 
   free(response.memory);
@@ -297,8 +297,6 @@ int main(int argc, char **argv) {
   int ret;
   struct llist_t *l;
 
-  /* object creation */
-  curl_global_init(CURL_GLOBAL_NOTHING);
   config = config_new(config);
 
   /* parse args */
@@ -331,6 +329,8 @@ int main(int argc, char **argv) {
     perror("error creating cookie file");
     goto cleanup;
   }
+
+  curl_global_init(CURL_GLOBAL_NOTHING);
 
   if (aur_login() != 0)
     goto cleanup;
