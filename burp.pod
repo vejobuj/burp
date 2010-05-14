@@ -1,0 +1,78 @@
+=head1 NAME
+
+burp - AUR uploader
+
+=head1 SYNOPSIS
+
+burp [options] PACKAGE [PACKAGE2..]
+
+=head1 DESCRIPTION
+
+
+burp is a simple tool to upload packages to the AUR. It is written in C and
+only depends on libcurl for its functionality.
+
+
+=head1 OPTIONS
+
+
+=head2 Main Options
+
+
+
+=over 4
+
+
+
+=item B<-u> I<username>B<, --username=>I<username>
+
+AUR login username.
+
+
+=item B<-p> I<password>B<, --password=>I<password>B< >
+
+AUR login password.
+
+
+=item B<-c> I<CAT>B<, --category=>I<CAT>
+
+Specify category to assign to uploaded packages. This can only be specified once.
+If specified multiple times, the last instance will take precedence. If this 
+option is not specified, the category will default to type 'None' for new taurballs
+and the current category for updated taurballs. A list of valid categories can be
+obtained by invoking the -c flag with 'help'.
+
+
+=item B<-v>
+
+Be more verbose. Pass this option twice to see debug information.
+
+
+=back
+
+
+
+=head2 Config File
+
+
+
+=over 4
+
+burp will look for a config file located at $XDG_CONFIG_HOME/burp/burp.conf 
+and read default options from it in key=value format. Valid keys are:
+
+  Username
+  Password
+
+Comments using # are allowed. Command line options will always take precedence over 
+options specified in the config file.
+
+
+=back
+
+
+
+=head1 AUTHOR
+
+Dave Reisner E<lt>d@falconindy.comE<gt>
+
