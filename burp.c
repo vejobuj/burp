@@ -425,7 +425,8 @@ cleanup:
   return ret;
 }
 
-void read_config_file() {
+int read_config_file() {
+  int ret;
   struct stat st;
   char *ptr;
   char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
@@ -436,12 +437,13 @@ void read_config_file() {
   if (stat(config_path, &st) != 0) {
     if (config->verbose > 1)
       printf("::DEBUG:: No config file found\n");
-    return;
+    return 0;
   }
 
   if (config->verbose > 1)
     printf("::DEBUG:: Found config file\n");
 
+  ret = 0;
   FILE *conf_fd = fopen(config_path, "r");
   while (fgets(line, BUFSIZ, conf_fd)) {
     strtrim(line);
@@ -463,10 +465,16 @@ void read_config_file() {
       config->user = strdup(ptr);
     } else if (strcmp(key, "Password") == 0) {
       config->password = strdup(ptr);
+    } else {
+      fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
+      ret = 1;
+      break;
     }
   }
 
   fclose(conf_fd);
+
+  return ret;
 }
 
 int main(int argc, char **argv) {
@@ -503,7 +511,8 @@ int main(int argc, char **argv) {
   }
 
   if (config->user == NULL || config->password == NULL)
-    read_config_file();
+    if (read_config_file() != 0)
+      goto cleanup;
 
   if (config->user == NULL)
     config->user = get_username();
