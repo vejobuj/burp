@@ -14,7 +14,7 @@ burp: burp.c ${OBJ}
 	${CC} ${CFLAGS} $< -c
 
 doc:
-	pod2man --section=1 --center=" " --release=" " --date="burp-VERSION" README > burp.1
+	pod2man --section=1 --center=" " --release=" " --date="burp-VERSION" README.pod > burp.1
 
 install: all
 	@echo installing executable to ${DESTDIR}/usr/bin
