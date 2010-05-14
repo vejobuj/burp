@@ -325,7 +325,8 @@ long aur_upload(const char *taurball) {
 
   fullpath = realpath(taurball, NULL);
   if (fullpath == NULL) {
-    perror("burp: error uploading file");
+    fprintf(stderr, "Error uploading file '%s': ", taurball);
+    perror("");
     return 1L;
   }
 
@@ -387,7 +388,7 @@ long aur_upload(const char *taurball) {
       printf("%s ", basename);
     else
       printf("%s ", taurball);
-    printf("has been uploaded sucessfully\n");
+    printf("has been uploaded successfully.\n");
   }
 
 cleanup:
