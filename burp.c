@@ -254,6 +254,16 @@ void delete_file(const char *filename) {
     unlink(filename);
 }
 
+void curl_local_init() {
+  curl = curl_easy_init();
+
+  if (config->verbose > 1)
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+
+  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+}
+
 long aur_login(void) {
   long ret;
   long code;
@@ -261,10 +271,6 @@ long aur_login(void) {
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
   static struct write_result response;
-
-  curl = curl_easy_init();
-  if (config->verbose > 1)
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
   ret = 0;
   post = last = NULL;
@@ -282,10 +288,8 @@ long aur_login(void) {
   headers = curl_slist_append(headers, "Expect:");
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
 
@@ -331,9 +335,6 @@ long aur_upload(const char *taurball) {
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
   static struct write_result response;
-
-  if (config->verbose > 1)
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
   ret = 0;
   post = last = NULL;
@@ -449,6 +450,7 @@ int main(int argc, char **argv) {
   }
 
   curl_global_init(CURL_GLOBAL_NOTHING);
+  curl_local_init();
 
   if (aur_login() == 0)
     for (l = targets; l; l = l->next)
@@ -464,5 +466,4 @@ cleanup:
   config_free(config);
 
   return 0;
-
 }
