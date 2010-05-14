@@ -1,6 +1,5 @@
 CC=gcc -std=c99 -Wall -pedantic -g
-#VERSION=-DVERSION=\"$(shell git describe)\"
-VERSION=-DVERSION=\"0.01\"
+VERSION=-DVERSION=\"$(shell git describe --always)\"
 CFLAGS=-pipe -O2 -D_GNU_SOURCE
 LDFLAGS=-lcurl
 OBJ=llist.o
