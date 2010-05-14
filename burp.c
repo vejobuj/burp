@@ -47,9 +47,35 @@ struct config_t {
   int verbose;
 };
 
+struct write_result {
+  char *memory;
+  size_t size;
+};
+
 static struct config_t *config;
 static struct llist_t *targets;
 static CURL *curl;
+
+static void *myrealloc(void *ptr, size_t size) {
+  if (ptr)
+    return realloc(ptr, size);
+  else
+    return calloc(1, size);
+}
+
+static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
+
+  struct write_result *mem = (struct write_result*)stream;
+  size_t realsize = nmemb * size;
+
+  mem->memory = myrealloc(mem->memory, mem->size + realsize + 1);
+  if (mem->memory) {
+    memcpy(&(mem->memory[mem->size]), ptr, realsize);
+    mem->size += realsize;
+    mem->memory[mem->size] = 0;
+  }
+  return realsize;
+}
 
 static struct config_t *config_new(struct config_t *config) {
   config = malloc(sizeof *config);
@@ -182,15 +208,22 @@ int create_cookie_file(const char *filename) {
 }
 
 int aur_login(void) {
+  int ret;
+  long code;
+  CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
+  static struct write_result response;
 
   curl = curl_easy_init();
   if (config->verbose > 1)
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 
+  ret = 0;
   post = last = NULL;
   headers = NULL;
+  response.memory = NULL;
+  response.size = 0;
 
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, AUR_LOGIN_FIELD,
@@ -203,15 +236,36 @@ int aur_login(void) {
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "/home/haruko/cookies.txt");
-  /* curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, _______); */
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
-  curl_easy_perform(curl);
 
+  status = curl_easy_perform(curl);
+  if(status != 0) {
+    fprintf(stderr, "curl error: unable to request data from %s\n", AUR_LOGIN_URL);
+    fprintf(stderr, "%s\n", curl_easy_strerror(status));
+    return status;
+  }
+
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+  if(code != 200) {
+    fprintf(stderr, "curl error: server responded with code %ld\n", code);
+    return -1;
+  }
+
+  if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
+    fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
+    ret = -1;
+  }
+
+  free(response.memory);
+  curl_slist_free_all(headers);
+  curl_formfree(post);
   curl_easy_cleanup(curl);
 
-  return 0;
+  return ret;
 }
 
 void read_config_file() {
@@ -263,7 +317,6 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-
   /* Ensure we have a proper config environment */
   if (config->user == NULL || config->password == NULL)
     read_config_file();
@@ -279,10 +332,8 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  if (aur_login() > 0) {
-    fprintf(stderr, "login error\n");
+  if (aur_login() != 0)
     goto cleanup;
-  }
 
   for (l = targets; l; l = l->next) {
     printf("target: %s\n", (const char*)l->data);
