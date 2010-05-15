@@ -115,6 +115,9 @@ cleanup:
   curl_slist_free_all(headers);
   curl_formfree(post);
 
+  /* We're done using the password. Overwrite its memory */
+  config->password = memset(config->password, 42, strlen(config->password));
+
   return ret;
 }
 
