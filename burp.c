@@ -15,127 +15,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <curl/curl.h>
-#include <curl/types.h>
-#include <curl/easy.h>
-
-#include <ctype.h>
 #include <getopt.h>
-#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <termios.h>
 #include <unistd.h>
 
+#include <curl/curl.h>
+
+#include "conf.h"
+#include "curl.h"
 #include "llist.h"
-
-#define USER_MAX      16
-#define PASSWORD_MAX  128
-
-#define AUR_LOGIN_FIELD     "user"
-#define AUR_PASSWD_FIELD    "passwd"
-#define AUR_LOGIN_FAIL_MSG  "Bad username or password."
-#define AUR_LOGIN_URL       "http://aur.archlinux.org/"
-#define AUR_SUBMIT_URL      "http://aur.archlinux.org/pkgsubmit.php"
-
-#define COOKIEFILE_DEFAULT  "/tmp/burp-%d.cookies"
-
-#define FREE(x) do { free(x); x = NULL; } while (0)
+#include "util.h"
 
 static const char *categories[] = {
   "daemons", "devel", "editors", "emulators", "games", "gnome", "i18n", "kde",
   "lib", "modules", "multimedia", "network", "office", "science", "system",
   "x11", "xfce", "kernels", NULL};
 
-struct config_t {
-  char *user;
-  char *password;
-  char *cookies;
-  char *category;
-  int verbose;
-};
-
-struct write_result {
-  char *memory;
-  size_t size;
-};
-
-static struct config_t *config;
 static struct llist_t *targets;
-static CURL *curl;
-
-static void *myrealloc(void *ptr, size_t size) {
-  if (ptr)
-    return realloc(ptr, size);
-  else
-    return calloc(1, size);
-}
-
-static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
-
-  struct write_result *mem = (struct write_result*)stream;
-  size_t realsize = nmemb * size;
-
-  mem->memory = myrealloc(mem->memory, mem->size + realsize + 1);
-  if (mem->memory) {
-    memcpy(&(mem->memory[mem->size]), ptr, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
-  }
-  return realsize;
-}
-
-static char *strtrim(char *str) {
-  char *pch = str;
-
-  if (str == NULL || *str == '\0')
-    return str;
-
-  while (isspace(*pch)) pch++;
-
-  if (pch != str)
-    memmove(str, pch, (strlen(pch) + 1));
-
-  if (*str == '\0')
-    return str;
-
-  pch = (str + strlen(str) - 1);
-
-  while (isspace(*pch))
-    pch--;
-
-  *++pch = '\0';
-
-  return str;
-}
-
-static struct config_t *config_new(struct config_t *config) {
-  config = malloc(sizeof *config);
-  if (config == NULL) {
-    fprintf(stderr, "Error allocating %zd bytes for config.\n", sizeof *config);
-    return NULL;
-  }
-
-  config->user = config->password = config->cookies = config->category = NULL;
-  config->verbose = 0;
-
-  return config;
-}
-
-static void config_free(struct config_t *config) {
-  if (config->user)
-    free(config->user);
-  if (config->password)
-    free(config->password);
-  if (config->cookies)
-    free(config->cookies);
-  if (config->category && strcmp(config->category, "None") != 0)
-    free(config->category);
-
-  free(config);
-}
 
 static void usage() {
 printf("burp %s\n\
@@ -172,7 +70,6 @@ static int category_is_valid(const char *cat) {
   return 1;
 }
 
-
 static int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
@@ -199,12 +96,12 @@ static int parseargs(int argc, char **argv) {
       case 'p':
         if (config->password)
           FREE(config->password);
-        config->password = strndup(optarg, PASSWORD_MAX);
+        config->password = strndup(optarg, AUR_PASSWORD_MAX);
         break;
       case 'u':
         if (config->user)
           FREE(config->user);
-        config->user = strndup(optarg, USER_MAX);
+        config->user = strndup(optarg, AUR_USER_MAX);
         break;
       case 'v':
         config->verbose++;
@@ -225,277 +122,12 @@ static int parseargs(int argc, char **argv) {
   return 0;
 }
 
-static char *get_username(void) {
-  char *buf;
-
-  printf("Enter username: ");
-
-  buf = calloc(1, USER_MAX + 1);
-
-  /* fgets() will leave a newline char on the end */
-  fgets(buf, USER_MAX, stdin);
-  *(buf + strlen(buf) - 1) = '\0';
-
-  return buf;
-}
-
-static char *get_password(void) {
-  struct termios t;
-  char *buf;
-
-  buf = calloc(1, PASSWORD_MAX + 1);
-  printf("Enter password: ");
-
-  /* turn off the echo flag */
-  tcgetattr(fileno(stdin), &t);
-  t.c_lflag &= ~ECHO;
-  tcsetattr(fileno(stdin), TCSANOW, &t);
-
-  /* fgets() will leave a newline char on the end */
-  fgets(buf, PASSWORD_MAX, stdin);
-  *(buf + strlen(buf) - 1) = '\0';
-
-  putchar('\n');
-  t.c_lflag |= ECHO;
-  tcsetattr(fileno(stdin), TCSANOW, &t);
-
-  return buf;
-}
-
-static int set_cookie_filepath(char **filename) {
-  if (*filename != NULL)
-    FREE(*filename);
-
-  *filename = calloc(1, PATH_MAX + 1);
-  snprintf(*filename, PATH_MAX, COOKIEFILE_DEFAULT, getpid());
-  if (config->verbose > 1)
-    printf("::DEBUG:: Using cookie file: %s\n", *filename);
-
-  return *filename == NULL;
-}
-
-static void delete_file(const char *filename) {
-  struct stat st;
-
-  if (stat(filename, &st) == 0) {
-    if (config->verbose > 1)
-      printf("::DEBUG:: Deleting file %s\n", filename);
-    unlink(filename);
-  }
-}
-
-static void curl_local_init() {
-  curl = curl_easy_init();
-
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Initializing curl\n");
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-  }
-
-  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-}
-
-static long aur_login(void) {
-  long ret, code;
-  CURLcode status;
-  struct curl_httppost *post, *last;
-  struct curl_slist *headers;
-  static struct write_result response;
-
-  ret = 0;
-  post = last = NULL;
-  headers = NULL;
-  response.memory = NULL;
-  response.size = 0;
-
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, AUR_LOGIN_FIELD,
-    CURLFORM_COPYCONTENTS, config->user, CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
-    CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
-
-  headers = curl_slist_append(headers, "Expect:");
-
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-  curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
-
-  if (config->verbose > 0)
-    printf("Logging in to AUR as user %s\n", config->user);
-
-  status = curl_easy_perform(curl);
-  if(status != 0) {
-    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_LOGIN_URL);
-    fprintf(stderr, "%s\n", curl_easy_strerror(status));
-    ret = status;
-    goto cleanup;
-  }
-
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-  if(code != 200) {
-    fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    ret = code;
-    goto cleanup;
-  }
-
-  if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
-    fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
-    ret = 1L; /* Reuse an uncommon curl error */
-  }
-
-cleanup:
-  free(response.memory);
-  curl_slist_free_all(headers);
-  curl_formfree(post);
-
-  return ret;
-}
-
-static long aur_upload(const char *taurball) {
-  char *fullpath;
-
-  fullpath = realpath(taurball, NULL);
-  if (fullpath == NULL) {
-    fprintf(stderr, "Error uploading file '%s': ", taurball);
-    perror("");
-    return 1L;
-  }
-
-  long ret, code;
-  CURLcode status;
-  struct curl_httppost *post, *last;
-  struct curl_slist *headers;
-  static struct write_result response;
-
-  ret = 0;
-  post = last = NULL;
-  headers = NULL;
-  response.memory = NULL;
-  response.size = 0;
-
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "pkgsubmit",
-    CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "category",
-    CURLFORM_COPYCONTENTS, config->category, CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "pfile",
-    CURLFORM_FILE, fullpath, CURLFORM_END);
-
-  headers = curl_slist_append(headers, "Expect:");
-
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
-
-  if (config->verbose > 0)
-    printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
-
-  status = curl_easy_perform(curl);
-  if (status != 0) {
-    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_SUBMIT_URL);
-    fprintf(stderr, "%s\n", curl_easy_strerror(status));
-    ret = status;
-    goto cleanup;
-  }
-
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-  if(code != 200) {
-    fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    ret = code;
-    goto cleanup;
-  }
-
-  if (strstr(response.memory, "not allowed to overwrite") != NULL) {
-    fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
-    ret = 1;
-  } else if (strstr(response.memory, "Unknown file format") != NULL) {
-    fprintf(stderr, "Error: Incorrect file format. Upload must conform to AUR "
-                    "packaging guidelines.\n");
-    ret = 1;
-  } else {
-    char *basename;
-    if ((basename = strrchr(taurball, '/')) != NULL)
-      printf("%s ", basename);
-    else
-      printf("%s ", taurball);
-    printf("has been uploaded successfully.\n");
-  }
-
-cleanup:
-  free(fullpath);
-  free(response.memory);
-  curl_slist_free_all(headers);
-  curl_formfree(post);
-
-  return ret;
-}
-
-static int read_config_file() {
-  int ret;
-  struct stat st;
-  char *ptr;
-  char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
-
-  snprintf(&config_path[0], PATH_MAX, "%s/%s", 
-    getenv("XDG_CONFIG_HOME"), "burp/burp.conf");
-
-  if (stat(config_path, &st) != 0) {
-    if (config->verbose > 1)
-      printf("::DEBUG:: No config file found\n");
-    return 0;
-  }
-
-  if (config->verbose > 1)
-    printf("::DEBUG:: Found config file\n");
-
-  ret = 0;
-  FILE *conf_fd = fopen(config_path, "r");
-  while (fgets(line, BUFSIZ, conf_fd)) {
-    strtrim(line);
-
-    if (line[0] == '#' || strlen(line) == 0)
-      continue;
-
-    if ((ptr = strchr(line, '#'))) {
-      *ptr = '\0';
-    }
-
-    char *key;
-    key = ptr = line;
-    strsep(&ptr, "=");
-    strtrim(key);
-    strtrim(ptr);
-
-    if (strcmp(key, "User") == 0) {
-      config->user = strdup(ptr);
-    } else if (strcmp(key, "Password") == 0) {
-      config->password = strdup(ptr);
-    } else {
-      fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
-      ret = 1;
-      break;
-    }
-  }
-
-  fclose(conf_fd);
-
-  return ret;
-}
-
 int main(int argc, char **argv) {
 
   int ret;
   struct llist_t *l;
 
-  config = config_new(config);
+  config = config_new();
 
   /* parse args */
   targets = NULL;
@@ -529,15 +161,17 @@ int main(int argc, char **argv) {
       goto cleanup;
 
   if (config->user == NULL)
-    config->user = get_username();
+     get_username(&(config->user), AUR_USER_MAX);
 
   if (config->password == NULL)
-    config->password = get_password();
+     get_password(&(config->password), AUR_PASSWORD_MAX);
 
-  if ((set_cookie_filepath(&(config->cookies))) != 0) {
+  if ((get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT)) != 0) {
     fprintf(stderr, "error creating cookie file");
     goto cleanup;
-  }
+  } else
+    if (config->verbose > 1)
+      printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
 
   curl_global_init(CURL_GLOBAL_NOTHING);
   curl_local_init();
@@ -552,7 +186,10 @@ int main(int argc, char **argv) {
 
 cleanup:
   llist_free(targets, free);
-  delete_file(config->cookies);
+  if (config->verbose > 1) {
+    printf("::DEBUG:: Deleting file %s\n", config->cookies);
+    delete_file(config->cookies);
+  }
   config_free(config);
 
   return 0;
