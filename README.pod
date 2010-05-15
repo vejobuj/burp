@@ -4,7 +4,7 @@ burp - AUR uploader
 
 =head1 SYNOPSIS
 
-burp [options] PACKAGE [PACKAGE2..]
+I<burp> [options] PACKAGE [PACKAGE2..]
 
 =head1 DESCRIPTION
 
