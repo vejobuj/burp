@@ -140,12 +140,15 @@ long aur_upload(const char *taurball) {
   response.memory = NULL;
   response.size = 0;
 
+  char category[3];
+  snprintf(category, 3, "%d", config->catnum);
+
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "pkgsubmit",
     CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "category",
-    CURLFORM_COPYCONTENTS, config->catnum, CURLFORM_END);
+    CURLFORM_COPYCONTENTS, category, CURLFORM_END);
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "pfile",
     CURLFORM_FILE, fullpath, CURLFORM_END);

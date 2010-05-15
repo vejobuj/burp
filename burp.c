@@ -62,7 +62,7 @@ static int category_is_valid(const char *cat) {
   int i;
   for (i = 1; (categories[i]) != NULL; i++)
     if (strcasecmp(categories[i], cat) == 0) {
-      snprintf(config->catnum, 3, "%d", i);
+      config->catnum = i;
       return 0;
     }
 
