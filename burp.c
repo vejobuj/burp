@@ -268,6 +268,8 @@ static int set_cookie_filepath(char **filename) {
 
   *filename = calloc(1, PATH_MAX + 1);
   snprintf(*filename, PATH_MAX, COOKIEFILE_DEFAULT, getpid());
+  if (config->verbose > 1)
+    printf("::DEBUG:: Using cookie file: %s\n", *filename);
 
   return *filename == NULL;
 }
@@ -275,15 +277,20 @@ static int set_cookie_filepath(char **filename) {
 static void delete_file(const char *filename) {
   struct stat st;
 
-  if (stat(filename, &st) == 0)
+  if (stat(filename, &st) == 0) {
+    if (config->verbose > 1)
+      printf("::DEBUG:: Deleting file %s\n", filename);
     unlink(filename);
+  }
 }
 
 static void curl_local_init() {
   curl = curl_easy_init();
 
-  if (config->verbose > 1)
+  if (config->verbose > 1) {
+    printf("::DEBUG:: Initializing curl\n");
     curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
+  }
 
   curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
@@ -316,6 +323,9 @@ static long aur_login(void) {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
+
+  if (config->verbose > 0)
+    printf("Logging in to AUR as user %s\n", config->user);
 
   status = curl_easy_perform(curl);
   if(status != 0) {
@@ -384,6 +394,9 @@ static long aur_upload(const char *taurball) {
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
+
+  if (config->verbose > 0)
+    printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
 
   status = curl_easy_perform(curl);
   if (status != 0) {
@@ -489,11 +502,12 @@ int main(int argc, char **argv) {
   ret = parseargs(argc, argv);
 
   if (config->verbose > 1) {
-    printf("config->user = %s\n", config->user);
-    printf("config->password = %s\n", config->password);
-    printf("config->cookies = %s\n", config->cookies);
-    printf("config->category = %s\n", config->category);
-    printf("config->verbose = %d\n", config->verbose);
+    printf("::DEBUG:: Command line options:\n");
+    printf("  config->user = %s\n", config->user);
+    printf("  config->password = %s\n", config->password);
+    printf("  config->cookies = %s\n", config->cookies);
+    printf("  config->category = %s\n", config->category);
+    printf("  config->verbose = %d\n", config->verbose);
   }
 
   /* Ensure we have a proper config environment */
