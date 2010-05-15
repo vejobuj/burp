@@ -88,10 +88,18 @@ int read_config_file() {
     strtrim(key);
     strtrim(ptr);
 
-    if (strcmp(key, "User") == 0) {
-      config->user = strdup(ptr);
+    if (strcmp(key, "User") == 0 ) {
+      if (config->user == NULL) {
+        config->user = strdup(ptr);
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using username: %s\n", ptr);
+      }
     } else if (strcmp(key, "Password") == 0) {
-      config->password = strdup(ptr);
+      if (config->password == NULL) {
+        config->password = strdup(ptr);
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using password from config file.\n");
+      }
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;
