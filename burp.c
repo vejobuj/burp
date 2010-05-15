@@ -51,18 +51,15 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 }
 
 static void usage_categories() {
-  int i;
-
   printf("Valid categories are:\n");
+  int i;
   for (i = 0; (categories[i]) != NULL; i++)
     printf("\t%s\n", categories[i]);
   putchar('\n');
-
 }
 
 static int category_is_valid(const char *cat) {
   int i;
-
   for (i = 0; (categories[i]) != NULL; i++)
     if (strcmp(categories[i], cat) == 0)
       return 0;
@@ -74,7 +71,6 @@ static int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
   static struct option opts[] = {
-    /* Operations */
     {"user",      required_argument,  0, 'u'},
     {"password",  required_argument,  0, 'p'},
     {"category",  required_argument,  0, 'c'},
@@ -123,14 +119,11 @@ static int parseargs(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
-
   int ret;
-  struct llist_t *l;
 
   config = config_new();
-
-  /* parse args */
   targets = NULL;
+
   ret = parseargs(argc, argv);
 
   if (config->verbose > 1) {
@@ -176,12 +169,15 @@ int main(int argc, char **argv) {
   curl_global_init(CURL_GLOBAL_NOTHING);
   curl_local_init();
 
-  if (aur_login() == 0)
+  if (aur_login() == 0) {
+    struct llist_t *l;
     for (l = targets; l; l = l->next)
       aur_upload((const char*)l->data);
+  }
 
   if (curl != NULL)
     curl_easy_cleanup(curl);
+
   curl_global_cleanup();
 
 cleanup:
