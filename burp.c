@@ -28,10 +28,10 @@
 #include "llist.h"
 #include "util.h"
 
-static const char *categories[] = {
-  "daemons", "devel", "editors", "emulators", "games", "gnome", "i18n", "kde",
-  "lib", "modules", "multimedia", "network", "office", "science", "system",
-  "x11", "xfce", "kernels", NULL};
+static const char *categories[] = { "elephantitus",
+  "none", "daemons", "devel", "editors", "emulators", "games", "gnome", "i18n",
+  "kde", "lib", "modules", "multimedia", "network", "office", "science",
+  "system", "x11", "xfce", "kernels", NULL};
 
 static struct llist_t *targets;
 
@@ -53,16 +53,18 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 static void usage_categories() {
   printf("Valid categories are:\n");
   int i;
-  for (i = 0; (categories[i]) != NULL; i++)
+  for (i = 1; (categories[i]) != NULL; i++)
     printf("\t%s\n", categories[i]);
   putchar('\n');
 }
 
 static int category_is_valid(const char *cat) {
   int i;
-  for (i = 0; (categories[i]) != NULL; i++)
-    if (strcmp(categories[i], cat) == 0)
+  for (i = 1; (categories[i]) != NULL; i++)
+    if (strcasecmp(categories[i], cat) == 0) {
+      snprintf(config->catnum, 3, "%d", i);
       return 0;
+    }
 
   return 1;
 }

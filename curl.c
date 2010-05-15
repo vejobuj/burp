@@ -145,7 +145,7 @@ long aur_upload(const char *taurball) {
     CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "category",
-    CURLFORM_COPYCONTENTS, config->category, CURLFORM_END);
+    CURLFORM_COPYCONTENTS, config->catnum, CURLFORM_END);
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, "pfile",
     CURLFORM_FILE, fullpath, CURLFORM_END);

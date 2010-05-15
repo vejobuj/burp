@@ -25,6 +25,7 @@ struct config_t {
   char *password;
   char *cookies;
   char *category;
+  char catnum[3];
   int verbose;
 };
 

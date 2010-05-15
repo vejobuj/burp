@@ -48,6 +48,7 @@ struct config_t *config_new(void) {
 
   config->user = config->password = config->cookies = config->category = NULL;
   config->verbose = 0;
+  strcpy(config->catnum, "1");
 
   return config;
 }
