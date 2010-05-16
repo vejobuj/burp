@@ -52,6 +52,7 @@ void curl_local_init() {
   }
 
   curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
+  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 }
 
