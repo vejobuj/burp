@@ -239,10 +239,13 @@ int main(int argc, char **argv) {
   }
 
   if (! cookie_valid) {
+    if (config->verbose > 1)
+      fprintf(stderr, "::DEBUG:: cookie auth will fail. Falling back to user/pass\n");
+
     if (config->user == NULL)
-       get_username(&(config->user), AUR_USER_MAX);
+      config->user = get_username(AUR_USER_MAX);
     if (config->password == NULL)
-       get_password(&(config->password), AUR_PASSWORD_MAX);
+      config->password = get_password(AUR_PASSWORD_MAX);
   }
 
   curl_global_init(CURL_GLOBAL_NOTHING);

@@ -67,13 +67,14 @@ int cookie_expire_time(const char *cookie_file, const char *site, const char *CI
   return expire;
 }
 
-void get_password(char **buf, int length) {
+char* get_password(int length) {
   struct termios t;
+  char *buf;
 
-  *buf = calloc(1, length + 1);
-  if (*buf == NULL) {
+  buf = calloc(1, length + 1);
+  if (buf == NULL) {
     fprintf(stderr, "Error allocating %d bytes.\n", length + 1);
-    return;
+    return NULL;
   }
 
   printf("Enter password: ");
@@ -84,12 +85,14 @@ void get_password(char **buf, int length) {
   tcsetattr(fileno(stdin), TCSANOW, &t);
 
   /* fgets() will leave a newline char on the end */
-  fgets(*buf, length, stdin);
-  *(*buf + strlen(*buf) - 1) = '\0';
+  fgets(buf, length, stdin);
+  *(buf + strlen(buf) - 1) = '\0';
 
   putchar('\n');
   t.c_lflag |= ECHO;
   tcsetattr(fileno(stdin), TCSANOW, &t);
+
+  return buf;
 }
 
 int get_tmpfile(char **buf, const char *format) {
@@ -102,18 +105,22 @@ int get_tmpfile(char **buf, const char *format) {
   return *buf == NULL;
 }
 
-void get_username(char **buf, int length) {
-  *buf = calloc(1, length + 1);
-  if (*buf == NULL) {
+char *get_username(int length) {
+  char *buf;
+
+  buf = calloc(1, length + 1);
+  if (buf == NULL) {
     fprintf(stderr, "Error allocating %d bytes.\n", length + 1);
-    return;
+    return NULL;
   }
 
   printf("Enter username: ");
 
   /* fgets() will leave a newline char on the end */
-  fgets(*buf, length, stdin);
-  *(*buf + strlen(*buf) - 1) = '\0';
+  fgets(buf, length, stdin);
+  *(buf + strlen(buf) - 1) = '\0';
+
+  return buf;
 }
 
 int line_starts_with(const char *line, const char *starts_with) {
