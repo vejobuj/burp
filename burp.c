@@ -51,8 +51,8 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
   -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n\
                               temporary file. Useful with the -k option.\n\
   -k, --keep-cookies        Cookies will be persistent and reused for logins.\n\
-                              Do not use this option without -C or specifying\n\
-                              a path in the config file.\n\
+                              If you specify this option, you must also provide\n\
+                              a path to a cookie file.\n\
   -v, --verbose             be more verbose. Pass twice for debug info.\n\n\
   burp also honors a config file. See burp(1) for more information.\n\n",
   VERSION);
@@ -194,6 +194,13 @@ int main(int argc, char **argv) {
   }
 
   read_config_file();
+
+  /* Quick sanity check */
+  if (config->persist && config->cookies == NULL) {
+    fprintf(stderr, "Conflicting options: do not specify -k without -C\n");
+    usage();
+    goto cleanup;
+  }
 
   int cookie_valid = FALSE;
   /* Determine how we'll login -- either by cookie or credentials */
