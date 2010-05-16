@@ -29,10 +29,22 @@
 #include "llist.h"
 #include "util.h"
 
-static const char *categories[] = { "elephantitus",
-  "none", "daemons", "devel", "editors", "emulators", "games", "gnome", "i18n",
-  "kde", "lib", "modules", "multimedia", "network", "office", "science",
-  "system", "x11", "xfce", "kernels", NULL};
+struct category {
+  char *name;
+  int num;
+};
+
+static struct category categories[] = { 
+  { "none", 1 },      { "daemons", 2 },   { "devel", 3 },
+  { "editors", 4 },   { "emulators", 5 }, { "games", 6 },
+  { "gnome", 7 },     { "i18n", 8 },      { "kde", 9 },
+  { "lib", 10 },      { "modules", 11 },  { "multimedia", 12 },
+  { "network", 13 },  { "office", 14 },   { "science", 15 },
+  { "system", 16 },   { "x11", 17 },      { "xfce", 18 },
+  { "kernels", 19 }
+};
+
+#define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
 
 static struct llist_t *targets;
 
@@ -61,16 +73,16 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 static void usage_categories() {
   printf("Valid categories are:\n");
   int i;
-  for (i = 1; (categories[i]) != NULL; i++)
-    printf("\t%s\n", categories[i]);
+  for (i = 0; i < NUM_CATEGORIES; i++)
+    printf("\t%s\n", categories[i].name);
   putchar('\n');
 }
 
 static int category_is_valid(const char *cat) {
   int i;
-  for (i = 1; (categories[i]) != NULL; i++)
-    if (strcasecmp(categories[i], cat) == 0) {
-      config->catnum = i;
+  for (i = 1; i < NUM_CATEGORIES; i++)
+    if (strcasecmp(categories[i].name, cat) == 0) {
+      config->catnum = categories[i].num;
       return 0;
     }
 
