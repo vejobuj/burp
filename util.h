@@ -26,10 +26,11 @@
 
 void delete_file(const char*);
 int file_exists(const char*);
+int cookie_expire_time(const char*, const char*, const char*);
 void get_password(char**, int);
 int get_tmpfile(char**, const char*);
 void get_username(char**, int);
-char *read_file_first_line(const char*);
+int line_starts_with(const char*, const char*);
 char *strtrim(char*);
 int touch(const char*);
 

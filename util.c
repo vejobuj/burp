@@ -42,6 +42,31 @@ int file_exists(const char *filename) {
   return stat(filename, &st) == 0;
 }
 
+int cookie_expire_time(const char *cookie_file, const char *site, const char *CID) {
+  FILE *fd;
+  char *buf;
+  int expire;
+  char _[30], cookie_fmt[BUFSIZ + 1];
+
+  buf = calloc(1, BUFSIZ + 1);
+  expire = 0;
+
+  snprintf(&cookie_fmt[0], BUFSIZ, "%s\t%%s\t/\t%%s\t%%d\t%s\t%%s%%c", site, CID);
+
+  fd = fopen(cookie_file, "r");
+  while ((buf = fgets(buf, BUFSIZ, fd)) != NULL) {
+    if (line_starts_with(buf, site)) {
+      sscanf(buf, cookie_fmt, &_[0], &_[0], &expire, &_[0], &_[0]);
+      break;
+    }
+  }
+  fclose(fd);
+
+  free(buf);
+
+  return expire;
+}
+
 void get_password(char **buf, int length) {
   struct termios t;
 
@@ -91,20 +116,8 @@ void get_username(char **buf, int length) {
   *(*buf + strlen(*buf) - 1) = '\0';
 }
 
-char *read_file_first_line(const char *file) {
-  FILE *fd;
-  char *buf;
-
-  buf = calloc(1, BUFSIZ + 1);
-
-  fd = fopen(file, "r");
-  fgets(buf, BUFSIZ, fd);
-  fclose(fd);
-
-  /* Remove trailing newline */
-  *(buf + strlen(buf) - 1) = '\0';
-
-  return buf;
+int line_starts_with(const char *line, const char *starts_with) {
+  return strncmp(line, starts_with, strlen(starts_with)) == 0;
 }
 
 char *strtrim(char *str) {
