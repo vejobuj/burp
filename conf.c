@@ -22,6 +22,7 @@
 #include <sys/stat.h>
 
 #include "conf.h"
+#include "curl.h"
 #include "util.h"
 
 struct config_t *config = NULL;
@@ -47,6 +48,7 @@ struct config_t *config_new(void) {
   }
 
   config->user = config->password = config->cookies = config->category = NULL;
+  config->persist = FALSE;
   config->verbose = 0;
   config->catnum = 1;
 
@@ -89,18 +91,26 @@ int read_config_file() {
     strtrim(key);
     strtrim(ptr);
 
-    if (strcmp(key, "User") == 0 ) {
+    if (strcasecmp(key, "user") == 0 ) {
       if (config->user == NULL) {
-        config->user = strdup(ptr);
+        config->user = strndup(ptr, AUR_USER_MAX);
         if (config->verbose > 1)
-          printf("::DEBUG:: Using username: %s\n", ptr);
+          printf("::DEBUG:: Using username: %s\n", config->user);
       }
-    } else if (strcmp(key, "Password") == 0) {
+    } else if (strcasecmp(key, "password") == 0) {
       if (config->password == NULL) {
-        config->password = strdup(ptr);
+        config->password = strndup(ptr, AUR_PASSWORD_MAX);
         if (config->verbose > 1)
           printf("::DEBUG:: Using password from config file.\n");
       }
+    } else if (strcasecmp(key, "cookies") == 0) {
+      if (config->cookies == NULL) {
+        config->cookies = strndup(ptr, PATH_MAX);
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+      }
+    } else if (strcasecmp(key, "persist") == 0) {
+      config->persist = 1;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;

@@ -26,6 +26,7 @@ struct config_t {
   char *cookies;
   char *category;
   int catnum;
+  int persist;
   int verbose;
 };
 
