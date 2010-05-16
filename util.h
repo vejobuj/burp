@@ -22,11 +22,15 @@
 #define FALSE 0
 
 #define FREE(x) do { free(x); x = NULL; } while (0)
+#define STREQ(x,y) strcmp(x,y) == 0
 
 void delete_file(const char*);
+int file_exists(const char*);
 void get_password(char**, int);
 int get_tmpfile(char**, const char*);
 void get_username(char**, int);
+char *read_file_first_line(const char*);
 char *strtrim(char*);
+int touch(const char*);
 
 #endif /* _BURP_UTIL_H */

@@ -16,6 +16,7 @@
  */
 
 #include <ctype.h>
+#include <fcntl.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,12 @@ void delete_file(const char *filename) {
 
   if (stat(filename, &st) == 0)
     unlink(filename);
+}
+
+int file_exists(const char *filename) {
+  struct stat st;
+
+  return stat(filename, &st) == 0;
 }
 
 void get_password(char **buf, int length) {
@@ -84,6 +91,22 @@ void get_username(char **buf, int length) {
   *(*buf + strlen(*buf) - 1) = '\0';
 }
 
+char *read_file_first_line(const char *file) {
+  FILE *fd;
+  char *buf;
+
+  buf = calloc(1, BUFSIZ + 1);
+
+  fd = fopen(file, "r");
+  fgets(buf, BUFSIZ, fd);
+  fclose(fd);
+
+  /* Remove trailing newline */
+  *(buf + strlen(buf) - 1) = '\0';
+
+  return buf;
+}
+
 char *strtrim(char *str) {
   char *pch = str;
 
@@ -106,4 +129,18 @@ char *strtrim(char *str) {
   *++pch = '\0';
 
   return str;
+}
+
+int touch(const char *filename) {
+  int fd;
+
+  fd = open(filename, O_WRONLY | O_CREAT | O_NONBLOCK | O_NOCTTY,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+
+  if (fd == -1) {
+    perror("touch");
+    return -1;
+  }
+
+  return close(fd);
 }
