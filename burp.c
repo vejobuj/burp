@@ -16,6 +16,7 @@
  */
 
 #include <getopt.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -120,8 +121,33 @@ static int parseargs(int argc, char **argv) {
   return 0;
 }
 
+void trap_handler(int signal) {
+  if (config->verbose > 0)
+    fprintf(stderr, "\nCaught user interrupt, exiting...\n");
+
+  if (curl != NULL) {
+    curl_easy_cleanup(curl);
+    curl_global_cleanup();
+  }
+
+  llist_free(targets, free);
+  if (config->cookies != NULL) {
+    if (config->verbose > 1)
+      printf("::DEBUG:: Deleting file %s\n", config->cookies);
+
+    delete_file(config->cookies);
+  }
+
+  config_free(config);
+
+  exit(1);
+}
+
+
 int main(int argc, char **argv) {
   int ret;
+
+  signal(SIGINT, trap_handler);
 
   config = config_new();
   targets = NULL;
@@ -184,8 +210,10 @@ int main(int argc, char **argv) {
 
 cleanup:
   llist_free(targets, free);
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Deleting file %s\n", config->cookies);
+  if (config->cookies != NULL) {
+    if (config->verbose > 1)
+      printf("::DEBUG:: Deleting file %s\n", config->cookies);
+
     delete_file(config->cookies);
   }
   config_free(config);
