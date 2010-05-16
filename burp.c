@@ -30,7 +30,7 @@
 #include "util.h"
 
 struct category {
-  char *name;
+  const char *name;
   int num;
 };
 
@@ -45,6 +45,13 @@ static struct category categories[] = {
 };
 
 #define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
+
+static int fn_cmp_cat (const void *c1, const void *c2) {
+  struct category *cat1 = (struct category*)c1;
+  struct category *cat2 = (struct category*)c2;
+
+  return strcmp(cat1->name, cat2->name);
+}
 
 static struct llist_t *targets;
 
@@ -79,14 +86,10 @@ static void usage_categories() {
 }
 
 static int category_is_valid(const char *cat) {
-  int i;
-  for (i = 1; i < NUM_CATEGORIES; i++)
-    if (strcasecmp(categories[i].name, cat) == 0) {
-      config->catnum = categories[i].num;
-      return 0;
-    }
+  struct category key;
+  key.name = cat;
 
-  return 1;
+  return ! (bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat));
 }
 
 static int parseargs(int argc, char **argv) {
