@@ -138,8 +138,7 @@ int touch(const char *filename) {
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
   if (fd == -1) {
-    perror("touch");
-    return -1;
+    return 1;
   }
 
   return close(fd);
