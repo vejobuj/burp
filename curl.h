@@ -22,8 +22,10 @@
 #include <curl/easy.h>
 #include <curl/types.h>
 
-#define AUR_USER_MAX      16
-#define AUR_PASSWORD_MAX  128
+#define CURL_COOKIEFILE_HEADER  "# Netscape HTTP Cookie File"
+
+#define AUR_USER_MAX            16
+#define AUR_PASSWORD_MAX        128
 
 #define AUR_LOGIN_URL           "http://aur.archlinux.org/"
 #define AUR_SUBMIT_URL          "http://aur.archlinux.org/pkgsubmit.php"
