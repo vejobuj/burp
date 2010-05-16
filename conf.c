@@ -91,26 +91,26 @@ int read_config_file() {
     strtrim(key);
     strtrim(ptr);
 
-    if (strcasecmp(key, "user") == 0 ) {
+    if (STREQ(key, "User")) {
       if (config->user == NULL) {
         config->user = strndup(ptr, AUR_USER_MAX);
         if (config->verbose > 1)
           printf("::DEBUG:: Using username: %s\n", config->user);
       }
-    } else if (strcasecmp(key, "password") == 0) {
+    } else if (STREQ(key, "Password")) {
       if (config->password == NULL) {
         config->password = strndup(ptr, AUR_PASSWORD_MAX);
         if (config->verbose > 1)
           printf("::DEBUG:: Using password from config file.\n");
       }
-    } else if (strcasecmp(key, "cookies") == 0) {
+    } else if (STREQ(key, "Cookies")) {
       if (config->cookies == NULL) {
         config->cookies = strndup(ptr, PATH_MAX);
         if (config->verbose > 1)
           printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
       }
-    } else if (strcasecmp(key, "persist") == 0) {
-      config->persist = 1;
+    } else if (STREQ(key, "Persist")) {
+      config->persist = TRUE;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;
