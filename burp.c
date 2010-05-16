@@ -29,6 +29,10 @@
 #include "llist.h"
 #include "util.h"
 
+#define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
+
+static struct llist_t *targets;
+
 struct category {
   const char *name;
   int num;
@@ -44,8 +48,6 @@ static struct category categories[] = {
   { "kernels", 19 }
 };
 
-#define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
-
 static int fn_cmp_cat (const void *c1, const void *c2) {
   struct category *cat1 = (struct category*)c1;
   struct category *cat2 = (struct category*)c2;
@@ -53,7 +55,13 @@ static int fn_cmp_cat (const void *c1, const void *c2) {
   return strcmp(cat1->name, cat2->name);
 }
 
-static struct llist_t *targets;
+static int category_is_valid(const char *cat) {
+  struct category key;
+
+  key.name = cat;
+
+  return ! (bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat));
+}
 
 static void usage() {
 printf("burp %s\n\
@@ -83,13 +91,6 @@ static void usage_categories() {
   for (i = 0; i < NUM_CATEGORIES; i++)
     printf("\t%s\n", categories[i].name);
   putchar('\n');
-}
-
-static int category_is_valid(const char *cat) {
-  struct category key;
-  key.name = cat;
-
-  return ! (bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat));
 }
 
 static int parseargs(int argc, char **argv) {
