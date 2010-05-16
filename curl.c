@@ -19,10 +19,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <curl/curl.h>
-#include <curl/easy.h>
-#include <curl/types.h>
-
 #include "conf.h"
 #include "curl.h"
 
@@ -78,6 +74,11 @@ long aur_login(void) {
   curl_formadd(&post, &last,
     CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
     CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
+
+  if (config->persist)
+    curl_formadd(&post, &last,
+      CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
+      CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
 
   headers = curl_slist_append(headers, "Expect:");
 
