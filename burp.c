@@ -209,6 +209,7 @@ int main(int argc, char **argv) {
       buf = read_file_first_line(config->cookies);
       if (STREQ(buf, CURL_COOKIEFILE_HEADER))
         cookie_valid = TRUE;
+      free(buf);
     }
   } else { /* create PID based file in /tmp */
     if (get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT) != 0) {
