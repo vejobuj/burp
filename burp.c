@@ -40,19 +40,20 @@ printf("burp %s\n\
 Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 \n\
  Options:\n\
-  -u, --user                AUR login username\n\
-  -p, --password            AUR login password\n\
-  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n\
-                              If this option is specified, you should\n\
-                              also provide the -C option.\n\
+  -u, --user                AUR login username.\n\
+  -p, --password            AUR login password.\n\
   -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n\
                               This will default to the current category\n\
                               for pre-existing packages and 'None' for new\n\
                               packages. -c help will give a list of valid\n\
-                              categories\n\
-  -C FILE, --cookies=FILE   Use FILE to store cookies. Also see the -k\n\
-                              option.\n\
-  -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
+                              categories.\n\
+  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n\
+                              temporary file. Useful with the -k option.\n\
+  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n\
+                              Do not use this option without -C or specifying\n\
+                              a path in the config file.\n\
+  -v, --verbose             be more verbose. Pass twice for debug info.\n\n\
+  burp also honors a config file. See burp(1) for more information.\n\n",
   VERSION);
 }
 
