@@ -13,27 +13,41 @@ only depends on libcurl for its functionality.
 
 =head1 OPTIONS
 
-=over 4
+=over
 
-=item B<-u> I<User>B<, --username=>I<User>
+=item B<-u> I<USER>B<, --username=>I<USER>
 
-AUR login username.
+AUR login username. If omitted and not specified in the config file, you will be
+prompted to enter this at runtime.
 
-=item B<-p> I<Password>B<, --password=>I<Password>B< >
+=item B<-p> I<PASSWORD>B<, --password=>I<PASSWORD>B< >
 
-AUR login password.
+AUR login password. If omitted and not specified in the config file, you will be
+prompted to enter this at runtime.
 
 =item B<-c> I<CAT>B<, --category=>I<CAT>
 
-Specify category to assign to uploaded packages. This can only be specified once.
-If specified multiple times, the last instance will take precedence. If this 
-option is not specified, the category will default to type 'None' for new taurballs
-and the current category for updated taurballs. A list of valid categories can be
-obtained by invoking the -c flag with 'help'.
+Specify I<CAT> to assign to uploaded packages. This should only be specified once.
+If specified multiple times, the last will take precedence. If this option is not
+specified, the category will default to type 'None' for new taurballs and the current
+category for updated taurballs. A list of valid categories can be obtained by invoking
+the -c flag with 'help'.
 
-=item B<-v>
+=item B<-C> I<FILE>B<, --cookies=>I<FILE>
 
-Be more verbose. Pass this option twice to see debug information.
+Use I<FILE> to store cookies rather than the default temporary file. If a valid cookie
+file is found, burp will attempt to login using the cookies in this file rather than
+by username and password. Do B<not> attempt to use a cookie file from your web browser
+or other application.
+
+=item B<-k, --keep-cookies>
+
+Cookies will be persistent and reused for logins. Do B<not> use this option without
+specifying a path to a cookie file, either by the -C option or via the config file.
+
+=item B<-v, --verbose>
+
+Be more verbose. Pass this option twice to see debug info.
 
 =back
 
@@ -42,11 +56,25 @@ Be more verbose. Pass this option twice to see debug information.
 burp will look for a config file located at I<$XDG_CONFIG_HOME/burp/burp.conf>
 and read default options from it in key=value format. Valid keys are:
 
-  User
-  Password
+=begin man
 
-Comments using # are allowed. Command line options will always take precedence over 
-options specified in the config file.
+.sp
+.RS 4
+.nf
+.BB lightgray
+User      = \fIUSER\fR
+Password  = \fIPASSWORD\fR
+Cookies   = \fIFILE\fR
+Persist
+.EB lightgray
+.fi
+.RE
+
+=end man
+
+These should all be self explanatory. Comments, if desired, can be specified
+with a #.  Command line options will always take precedence over options specified
+in the config file.
 
 
 =head1 AUTHOR
