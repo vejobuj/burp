@@ -15,6 +15,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <errno.h>
 #include <getopt.h>
 #include <linux/limits.h>
 #include <signal.h>
@@ -198,7 +199,11 @@ int main(int argc, char **argv) {
   /* Determine how we'll login -- either by cookie or credentials */
   if (config->cookies != NULL) { /* User specified cookie file */
     if (! file_exists(config->cookies)) {
-      touch(config->cookies);
+      if (touch(config->cookies) != 0) {
+        fprintf(stderr, "Error creating cookie file: ");
+        perror(config->cookies);
+        goto cleanup;
+      }
     } else {
       char *buf;
       buf = read_file_first_line(config->cookies);
@@ -207,7 +212,7 @@ int main(int argc, char **argv) {
     }
   } else { /* create PID based file in /tmp */
     if (get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT) != 0) {
-      fprintf(stderr, "error creating cookie file\n");
+      fprintf(stderr, "error creating cookie file.\n");
       goto cleanup;
     }
   }
