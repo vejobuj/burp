@@ -23,6 +23,7 @@
 
 #define FREE(x) do { free(x); x = NULL; } while (0)
 #define STREQ(x,y) strcmp(x,y) == 0
+#define STRNEQ(x,y) strcmp(x,y) != 0
 
 void delete_file(const char*);
 int file_exists(const char*);
