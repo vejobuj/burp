@@ -42,8 +42,8 @@ or other application.
 
 =item B<-k, --keep-cookies>
 
-Cookies will be persistent and reused for logins. Do B<not> use this option without
-specifying a path to a cookie file, either by the -C option or via the config file.
+Cookies will be persistent and reused for logins. If you specify this option, you must
+also provide a cookie file path with the -C option or in the config file.
 
 =item B<-v, --verbose>
 
