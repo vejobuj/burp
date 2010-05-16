@@ -204,12 +204,9 @@ int main(int argc, char **argv) {
         perror(config->cookies);
         goto cleanup;
       }
-    } else {
-      char *buf;
-      buf = read_file_first_line(config->cookies);
-      if (STREQ(buf, CURL_COOKIEFILE_HEADER))
+    } else { /* assume its a real cookie file and evaluate it */
+      if (cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME) > 0)
         cookie_valid = TRUE;
-      free(buf);
     }
   } else { /* create PID based file in /tmp */
     if (get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT) != 0) {

@@ -22,8 +22,6 @@
 #include <curl/easy.h>
 #include <curl/types.h>
 
-#define CURL_COOKIEFILE_HEADER  "# Netscape HTTP Cookie File"
-
 #define AUR_USER_MAX            16
 #define AUR_PASSWORD_MAX        128
 
