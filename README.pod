@@ -72,6 +72,17 @@ Persist
 
 =end man
 
+=begin html
+
+<dd>
+User      = <i>USER</i><br/>
+Password  = <i>PASSWORD</i><br/>
+Cookies   = <i>FILE</i><br/>
+Persist<br/>
+</dd>
+
+=end html
+
 These should all be self explanatory. Comments, if desired, can be specified
 with a #.  Command line options will always take precedence over options specified
 in the config file.
