@@ -34,7 +34,7 @@ void config_free(struct config_t *config) {
     free(config->password);
   if (config->cookies)
     free(config->cookies);
-  if (config->category && strcmp(config->category, "None") != 0)
+  if (config->category && STRNEQ(config->category, "None"))
     free(config->category);
 
   free(config);
