@@ -18,6 +18,9 @@
 #ifndef _BURP_UTIL_H
 #define _BURP_UTIL_H
 
+#define TRUE 1
+#define FALSE 0
+
 #define FREE(x) do { free(x); x = NULL; } while (0)
 
 void delete_file(const char*);
