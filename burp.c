@@ -103,8 +103,10 @@ static int parseargs(int argc, char **argv) {
         if (config->cookies)
           FREE(config->cookies);
         config->cookies = strndup(optarg, PATH_MAX);
+        break;
       case 'k':
         config->persist = TRUE;
+        break;
       case 'p':
         if (config->password)
           FREE(config->password);
@@ -120,7 +122,6 @@ static int parseargs(int argc, char **argv) {
         break;
 
       case '?':
-        usage();
         return 1;
       default:
         return 1;
@@ -156,7 +157,6 @@ void trap_handler(int signal) {
   exit(1);
 }
 
-
 int main(int argc, char **argv) {
   int ret;
 
@@ -172,6 +172,7 @@ int main(int argc, char **argv) {
     printf("  config->user = %s\n", config->user);
     printf("  config->password = %s\n", config->password);
     printf("  config->cookies = %s\n", config->cookies);
+    printf("  config->persist = %s\n", config->persist ? "true" : "false");
     printf("  config->category = %s\n", config->category);
     printf("  config->verbose = %d\n", config->verbose);
   }
@@ -190,31 +191,41 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  if (config->user == NULL || config->password == NULL)
-    if (read_config_file() != 0)
+  read_config_file();
+
+  int cookie_valid = FALSE;
+  /* Determine how we'll login -- either by cookie or credentials */
+  if (config->cookies != NULL) { /* User specified cookie file */
+    if (! file_exists(config->cookies)) {
+      touch(config->cookies);
+    } else {
+      char *buf;
+      buf = read_file_first_line(config->cookies);
+      if (STREQ(buf, CURL_COOKIEFILE_HEADER))
+        cookie_valid = TRUE;
+    }
+  } else { /* create PID based file in /tmp */
+    if (get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT) != 0) {
+      fprintf(stderr, "error creating cookie file\n");
       goto cleanup;
+    }
+  }
 
-  if (config->user == NULL)
-     get_username(&(config->user), AUR_USER_MAX);
-
-  if (config->password == NULL)
-     get_password(&(config->password), AUR_PASSWORD_MAX);
-
-  if ((get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT)) != 0) {
-    fprintf(stderr, "error creating cookie file");
-    goto cleanup;
-  } else
-    if (config->verbose > 1)
-      printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+  if (! cookie_valid) {
+    if (config->user == NULL)
+       get_username(&(config->user), AUR_USER_MAX);
+    if (config->password == NULL)
+       get_password(&(config->password), AUR_PASSWORD_MAX);
+  }
 
   curl_global_init(CURL_GLOBAL_NOTHING);
   curl_local_init();
 
-  if (aur_login() == 0) {
-    struct llist_t *l;
-    for (l = targets; l; l = l->next)
-      aur_upload((const char*)l->data);
-  }
+  if (cookie_valid || aur_login() == 0) {
+      struct llist_t *l;
+      for (l = targets; l; l = l->next)
+        aur_upload((const char*)l->data);
+    }
 
   if (curl != NULL)
     curl_easy_cleanup(curl);
