@@ -16,13 +16,12 @@
  */
 
 #include <getopt.h>
+#include <linux/limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-#include <curl/curl.h>
 
 #include "conf.h"
 #include "curl.h"
@@ -43,10 +42,16 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
  Options:\n\
   -u, --user                AUR login username\n\
   -p, --password            AUR login password\n\
-  -c CAT, --category=CAT    category to assign the uploaded package.\n\
+  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n\
+                              If this option is specified, you should\n\
+                              also provide the -C option.\n\
+  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n\
                               This will default to the current category\n\
                               for pre-existing packages and 'None' for new\n\
-                              packages. -c help will give a list of valid categories\n\
+                              packages. -c help will give a list of valid\n\
+                              categories\n\
+  -C FILE, --cookies=FILE   Use FILE to store cookies. Also see the -k\n\
+                              option.\n\
   -v, --verbose             be more verbose. Pass twice for debug messages\n\n",
   VERSION);
 }
@@ -74,14 +79,16 @@ static int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
   static struct option opts[] = {
-    {"user",      required_argument,  0, 'u'},
-    {"password",  required_argument,  0, 'p'},
-    {"category",  required_argument,  0, 'c'},
-    {"verbose",   no_argument,        0, 'v'},
+    {"user",          required_argument,  0, 'u'},
+    {"password",      required_argument,  0, 'p'},
+    {"keep-cookies",  no_argument,        0, 'k'},
+    {"category",      required_argument,  0, 'c'},
+    {"cookies",       required_argument,  0, 'C'},
+    {"verbose",       no_argument,        0, 'v'},
     {0, 0, 0, 0}
   };
 
-  while ((opt = getopt_long(argc, argv, "u:p:c:v", opts, &option_index))) {
+  while ((opt = getopt_long(argc, argv, "u:p:kc:C:v", opts, &option_index))) {
     if (opt < 0) {
       break;
     }
@@ -92,6 +99,12 @@ static int parseargs(int argc, char **argv) {
           FREE(config->category);
         config->category = strndup(optarg, 16);
         break;
+      case 'C':
+        if (config->cookies)
+          FREE(config->cookies);
+        config->cookies = strndup(optarg, PATH_MAX);
+      case 'k':
+        config->persist = TRUE;
       case 'p':
         if (config->password)
           FREE(config->password);
@@ -131,7 +144,7 @@ void trap_handler(int signal) {
   }
 
   llist_free(targets, free);
-  if (config->cookies != NULL) {
+  if (config->cookies != NULL && ! config->persist) {
     if (config->verbose > 1)
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
 
@@ -210,7 +223,7 @@ int main(int argc, char **argv) {
 
 cleanup:
   llist_free(targets, free);
-  if (config->cookies != NULL) {
+  if (config->cookies != NULL && ! config->persist) {
     if (config->verbose > 1)
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
 
