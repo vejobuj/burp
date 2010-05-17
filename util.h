@@ -28,9 +28,9 @@
 void delete_file(const char*);
 int file_exists(const char*);
 int cookie_expire_time(const char*, const char*, const char*);
-char* get_password(int);
-int get_tmpfile(char**, const char*);
-char* get_username(int);
+char *get_password(size_t);
+char *get_tmpfile(const char*);
+char *get_username(size_t);
 int line_starts_with(const char*, const char*);
 char *strtrim(char*);
 int touch(const char*);

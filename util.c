@@ -67,13 +67,13 @@ int cookie_expire_time(const char *cookie_file, const char *site, const char *CI
   return expire;
 }
 
-char* get_password(int length) {
+char* get_password(size_t max_length) {
   struct termios t;
   char *buf;
 
-  buf = calloc(1, length + 1);
+  buf = calloc(1, max_length + 1);
   if (buf == NULL) {
-    fprintf(stderr, "Error allocating %d bytes.\n", length + 1);
+    fprintf(stderr, "Error allocating %zd bytes.\n", max_length + 1);
     return NULL;
   }
 
@@ -85,7 +85,7 @@ char* get_password(int length) {
   tcsetattr(fileno(stdin), TCSANOW, &t);
 
   /* fgets() will leave a newline char on the end */
-  fgets(buf, length, stdin);
+  fgets(buf, max_length, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
   putchar('\n');
@@ -95,29 +95,33 @@ char* get_password(int length) {
   return buf;
 }
 
-int get_tmpfile(char **buf, const char *format) {
-  if (*buf != NULL)
-    FREE(*buf);
-
-  *buf = calloc(1, PATH_MAX + 1);
-  snprintf(*buf, PATH_MAX, format, getpid());
-
-  return *buf == NULL;
-}
-
-char *get_username(int length) {
+char *get_tmpfile(const char *format) {
   char *buf;
 
-  buf = calloc(1, length + 1);
+  buf = calloc(1, PATH_MAX + 1);
   if (buf == NULL) {
-    fprintf(stderr, "Error allocating %d bytes.\n", length + 1);
+    fprintf(stderr, "Error allocating %d bytes.\n", PATH_MAX + 1);
+    return NULL;
+  }
+
+  snprintf(buf, PATH_MAX, format, getpid());
+
+  return buf;
+}
+
+char *get_username(size_t max_length) {
+  char *buf;
+
+  buf = calloc(1, max_length + 1);
+  if (buf == NULL) {
+    fprintf(stderr, "Error allocating %zd bytes.\n", max_length + 1);
     return NULL;
   }
 
   printf("Enter username: ");
 
   /* fgets() will leave a newline char on the end */
-  fgets(buf, length, stdin);
+  fgets(buf, max_length, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
   return buf;
