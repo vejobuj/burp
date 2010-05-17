@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
 
   /* Quick sanity check */
   if (config->persist && config->cookies == NULL) {
-    fprintf(stderr, "Conflicting options: do not specify -k without -C\n");
+    fprintf(stderr, "%s: option conflict: do not specify -k without -C.\n", argv[0]);
     usage();
     goto cleanup;
   }
