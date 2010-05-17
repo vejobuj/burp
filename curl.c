@@ -194,7 +194,7 @@ long aur_upload(const char *taurball) {
   } else {
     char *basename;
     if ((basename = strrchr(taurball, '/')) != NULL)
-      printf("%s ", basename);
+      printf("%s ", basename + 1);
     else
       printf("%s ", taurball);
     printf("has been uploaded successfully.\n");
