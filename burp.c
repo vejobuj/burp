@@ -232,7 +232,7 @@ int main(int argc, char **argv) {
         cookie_valid = TRUE;
     }
   } else { /* create PID based file in /tmp */
-    if (get_tmpfile(&(config->cookies), COOKIEFILE_FORMAT) != 0) {
+    if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
       fprintf(stderr, "error creating cookie file.\n");
       goto cleanup;
     }
@@ -252,12 +252,12 @@ int main(int argc, char **argv) {
   curl_local_init();
 
   if (cookie_valid || aur_login() == 0) {
-      struct llist_t *l;
-      for (l = targets; l; l = l->next)
-        aur_upload((const char*)l->data);
-    }
+    struct llist_t *l;
+    for (l = targets; l; l = l->next)
+      aur_upload((const char*)l->data);
+  }
 
-  if (curl != NULL)
+  if (curl)
     curl_easy_cleanup(curl);
 
   curl_global_cleanup();
