@@ -67,6 +67,24 @@ int cookie_expire_time(const char *cookie_file, const char *site, const char *CI
   return expire;
 }
 
+char *expand_tilde(char *path) {
+  if (! line_starts_with(path, "~/"))
+    return strndup(path, PATH_MAX);
+
+  char *buf;
+
+  buf = calloc(1, PATH_MAX + 1);
+
+  if (snprintf(buf, PATH_MAX, "%s%s", getenv("HOME"), strchr(path, '/')) > 0) {
+    path = buf;
+  } else {
+    fprintf(stderr, "Error expanding path: %s\n", path);
+    free(buf);
+  }
+
+  return path;
+}
+
 char* get_password(size_t max_length) {
   struct termios t;
   char *buf;

@@ -28,6 +28,7 @@
 void delete_file(const char*);
 int file_exists(const char*);
 int cookie_expire_time(const char*, const char*, const char*);
+char *expand_tilde(char*);
 char *get_password(size_t);
 char *get_tmpfile(const char*);
 char *get_username(size_t);
