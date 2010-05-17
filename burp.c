@@ -38,14 +38,13 @@ struct category {
   int num;
 };
 
-static struct category categories[] = { 
-  { "none", 1 },      { "daemons", 2 },   { "devel", 3 },
-  { "editors", 4 },   { "emulators", 5 }, { "games", 6 },
-  { "gnome", 7 },     { "i18n", 8 },      { "kde", 9 },
-  { "lib", 10 },      { "modules", 11 },  { "multimedia", 12 },
-  { "network", 13 },  { "office", 14 },   { "science", 15 },
-  { "system", 16 },   { "x11", 17 },      { "xfce", 18 },
-  { "kernels", 19 }
+static struct category categories[] = {
+  { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
+  { "emulators",    5 }, { "games",        6 }, { "gnome",        7 },
+  { "i18n",         8 }, { "kde",          9 }, { "lib",         10 },
+  { "modules",     11 }, { "multimedia",  12 }, { "network",     13 },
+  { "office",      14 }, { "science",     15 }, { "system",      16 },
+  { "x11",         17 }, { "xfce",        18 }, { "kernels",     19 }
 };
 
 static int fn_cmp_cat (const void *c1, const void *c2) {
@@ -60,7 +59,7 @@ static int category_is_valid(const char *cat) {
 
   key.name = cat;
 
-  return ! (bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat));
+  return ! bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat);
 }
 
 static void usage() {
