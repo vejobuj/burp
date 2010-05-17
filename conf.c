@@ -105,7 +105,8 @@ int read_config_file() {
       }
     } else if (STREQ(key, "Cookies")) {
       if (config->cookies == NULL) {
-        config->cookies = strndup(ptr, PATH_MAX);
+        config->cookies = expand_tilde(ptr);
+
         if (config->verbose > 1)
           printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
       }
