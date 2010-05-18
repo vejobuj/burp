@@ -20,7 +20,6 @@
 
 #include <curl/curl.h>
 #include <curl/easy.h>
-#include <curl/types.h>
 
 #define AUR_USER_MAX            16
 #define AUR_PASSWORD_MAX        128
