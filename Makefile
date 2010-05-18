@@ -2,7 +2,7 @@ CC      = gcc -std=c99 -Wall -pedantic -g
 VERSION = $(shell git describe --always)
 CFLAGS  = -pipe -O2 -D_GNU_SOURCE -DVERSION=\"${VERSION}\"
 LDFLAGS = -lcurl
-SRC     = burp.c conf.c curl.c llist.c util.c
+SRC     = burp.c cookies.c conf.c curl.c llist.c util.c
 OBJ     = ${SRC:.c=.o}
 
 all: burp doc
