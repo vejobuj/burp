@@ -42,6 +42,7 @@ int file_exists(const char *filename) {
   return stat(filename, &st) == 0;
 }
 
+/*
 int cookie_expire_time(const char *cookie_file, const char *site, const char *CID) {
   FILE *fd;
   char *buf;
@@ -71,6 +72,7 @@ int cookie_expire_time(const char *cookie_file, const char *site, const char *CI
 
   return expire;
 }
+*/
 
 char *expand_tilde(char *path) {
   if (! line_starts_with(path, "~/"))

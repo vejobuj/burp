@@ -1,5 +1,5 @@
 /*
- *  util.h
+ *  cookies.h
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -15,25 +15,22 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _BURP_UTIL_H
-#define _BURP_UTIL_H
+#ifndef _BURP_COOKIES_H
+#define _BURP_COOKIES_H
 
-#define TRUE 1
-#define FALSE 0
+#define COOKIE_SIZE   512
 
-#define FREE(x) do { free(x); x = NULL; } while (0)
-#define STREQ(x,y) strcmp(x,y) == 0
-#define STRNEQ(x,y) strcmp(x,y) != 0
+struct cookie_t {
+  char *domain;
+  int secure;
+  char *path;
+  int hostonly;
+  long expire;
+  char *name;
+  char *value;
+};
 
-void delete_file(const char*);
-int file_exists(const char*);
-//int cookie_expire_time(const char*, const char*, const char*);
-char *expand_tilde(char*);
-char *get_password(size_t);
-char *get_tmpfile(const char*);
-char *get_username(size_t);
-int line_starts_with(const char*, const char*);
-char *strtrim(char*);
-int touch(const char*);
+struct cookie_t *cookie_to_struct(char*, struct cookie_t**);
+long cookie_expire_time(const char*, const char*, const char*);
 
-#endif /* _BURP_UTIL_H */
+#endif /* _BURP_COOKIES_H */
