@@ -208,10 +208,16 @@ int main(int argc, char **argv) {
     goto cleanup;
   }
 
-  read_config_file();
+  /* We can't read the config file without having verbosity set, but
+   * the command line options need to take precedence over the config.
+   * file. Therefore, if a user/pass OR a cookie file is supplied on
+   * the command line, we won't read the config file.
+   */
+  if (! ((config->user && config->password) || config->cookies))
+    read_config_file();
 
   /* Quick sanity check */
-  if (config->persist && config->cookies == NULL) {
+  if (config->persist && ! config->cookies) {
     fprintf(stderr, "%s: option conflict: do not specify -k without -C.\n", argv[0]);
     usage();
     goto cleanup;
