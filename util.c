@@ -49,6 +49,11 @@ int cookie_expire_time(const char *cookie_file, const char *site, const char *CI
   char _[30], cookie_fmt[BUFSIZ + 1];
 
   buf = calloc(1, BUFSIZ + 1);
+  if (buf == NULL) {
+    fprintf(stderr, "Error allocating %d bytes.\n", BUFSIZ + 1);
+    return 0;
+  }
+
   expire = 0;
 
   snprintf(&cookie_fmt[0], BUFSIZ, "%s\t%%s\t/\t%%s\t%%d\t%s\t%%s%%c", site, CID);
@@ -74,6 +79,10 @@ char *expand_tilde(char *path) {
   char *buf;
 
   buf = calloc(1, PATH_MAX + 1);
+  if (buf == NULL) {
+    fprintf(stderr, "Error allocating %d bytes.\n", PATH_MAX + 1);
+    return NULL;
+  }
 
   if (snprintf(buf, PATH_MAX, "%s%s", getenv("HOME"), strchr(path, '/')) > 0) {
     path = buf;
