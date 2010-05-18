@@ -218,8 +218,9 @@ int main(int argc, char **argv) {
 
   /* Quick sanity check */
   if (config->persist && ! config->cookies) {
-    fprintf(stderr, "%s: option conflict: do not specify -k without -C.\n", argv[0]);
-    usage();
+    fprintf(stderr, "%s: Error parsing options: do not specify persistent "
+                    "cookies without providing a path to the cookie file.\n",
+                    argv[0]);
     goto cleanup;
   }
 
