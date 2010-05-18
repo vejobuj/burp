@@ -47,14 +47,6 @@ long cookie_expire_time(const char *cookie_file,
 }
 
 struct cookie_t *cookie_to_struct(char *co, struct cookie_t **cookie) {
-  if (*cookie == NULL) {
-    *cookie = calloc(1, sizeof **cookie);
-    if (*cookie == NULL) {
-      fprintf(stderr, "Error allocating %zd bytes.\n", sizeof **cookie);
-      return NULL;
-    }
-  }
-
   (*cookie)->domain = strsep(&co, "\t");
   (*cookie)->secure = STREQ(strsep(&co, "\t"), "TRUE") ? 1 : 0;
   (*cookie)->path = strsep(&co, "\t");
