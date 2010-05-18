@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "conf.h"
+#include "cookies.h"
 #include "curl.h"
 #include "llist.h"
 #include "util.h"
