@@ -57,14 +57,13 @@ struct config_t *config_new(void) {
 
 int read_config_file() {
   int ret;
-  struct stat st;
   char *ptr;
   char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
 
   snprintf(&config_path[0], PATH_MAX, "%s/%s", 
     getenv("XDG_CONFIG_HOME"), "burp/burp.conf");
 
-  if (stat(config_path, &st) != 0) {
+  if (! file_exists(config_path)) {
     if (config->verbose > 1)
       printf("::DEBUG:: No config file found\n");
     return 0;
