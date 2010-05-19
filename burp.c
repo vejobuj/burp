@@ -255,8 +255,10 @@ int main(int argc, char **argv) {
       config->password = get_password(AUR_PASSWORD_MAX);
   }
 
-  curl_global_init(CURL_GLOBAL_NOTHING);
-  curl_local_init();
+  if (curl_global_init(CURL_GLOBAL_NOTHING) != 0 || curl_local_init() != 0) {
+    fprintf(stderr, "Error: An error occurred while initializing curl\n");
+    goto cleanup;
+  }
 
   if (cookie_valid || aur_login() == 0) {
     struct llist_t *l;
@@ -264,6 +266,8 @@ int main(int argc, char **argv) {
       aur_upload((const char*)l->data);
   }
 
+  if (config->verbose > 1)
+    printf("::DEBUG:: Cleaning up curl handle\n");
   if (curl)
     curl_easy_cleanup(curl);
 
