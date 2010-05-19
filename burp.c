@@ -153,16 +153,9 @@ static int parseargs(int argc, char **argv) {
   return 0;
 }
 
-void trap_handler(int signal) {
-  if (config->verbose > 0)
-    fprintf(stderr, "\nCaught user interrupt, exiting...\n");
-
-  if (curl != NULL) {
-    curl_easy_cleanup(curl);
-    curl_global_cleanup();
-  }
-
+static void cleanup(int ret) {
   llist_free(targets, free);
+
   if (config->cookies != NULL && ! config->persist) {
     if (config->verbose > 1)
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
@@ -172,18 +165,53 @@ void trap_handler(int signal) {
 
   config_free(config);
 
-  exit(1);
+  exit(ret);
+}
+
+static ssize_t xwrite(int fd, const void *buf, size_t count) {
+  ssize_t ret;
+  while ((ret = write(fd, buf, count)) == -1 && errno == EINTR);
+  return ret;
+}
+
+static void trap_handler(int signum) {
+  int err = fileno(stderr);
+
+  if (signum == SIGSEGV) {
+    const char *msg = "An internal error occurred. Please submit a full bug "
+                      "report with a backtrace if possible.\n";
+    xwrite(err, msg, strlen(msg));
+    exit(signum);
+  } else if (signum == SIGINT) {
+    const char *msg = "\nCaught user interrupt, exiting...\n";
+    xwrite(err, msg, strlen(msg));
+  }
+
+  cleanup(signum);
 }
 
 int main(int argc, char **argv) {
-  int ret;
+  int ret = 0;
+  struct sigaction new_action, old_action;
 
-  signal(SIGINT, trap_handler);
+  new_action.sa_handler = trap_handler;
+  sigemptyset(&new_action.sa_mask);
+  new_action.sa_flags = 0;
+
+  sigaction(SIGINT, NULL, &old_action);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction(SIGINT, &new_action, NULL);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction(SIGTERM, &new_action, NULL);
+  if (old_action.sa_handler != SIG_IGN)
+    sigaction(SIGSEGV, &new_action, NULL);
 
   config = config_new();
   targets = NULL;
 
   ret = parseargs(argc, argv);
+  if (ret != 0)
+    cleanup(ret);
 
   if (config->verbose > 1) {
     printf("::DEBUG:: Command line options:\n");
@@ -201,12 +229,12 @@ int main(int argc, char **argv) {
   else
     if (category_is_valid(config->category) > 0) {
       usage_categories();
-      goto cleanup;
+      cleanup(ret);
     }
 
   if (targets == NULL) {
     usage();
-    goto cleanup;
+    cleanup(ret);
   }
 
   /* We can't read the config file without having verbosity set, but
@@ -222,7 +250,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "%s: Error parsing options: do not specify persistent "
                     "cookies without providing a path to the cookie file.\n",
                     argv[0]);
-    goto cleanup;
+    cleanup(ret);
   }
 
   int cookie_valid = FALSE;
@@ -232,7 +260,7 @@ int main(int argc, char **argv) {
       if (touch(config->cookies) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
         perror(config->cookies);
-        goto cleanup;
+        cleanup(ret);
       }
     } else { /* assume its a real cookie file and evaluate it */
       if (cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME) > 0)
@@ -241,7 +269,7 @@ int main(int argc, char **argv) {
   } else { /* create PID based file in /tmp */
     if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
       fprintf(stderr, "error creating cookie file.\n");
-      goto cleanup;
+      cleanup(ret);
     }
   }
 
@@ -257,7 +285,7 @@ int main(int argc, char **argv) {
 
   if (curl_global_init(CURL_GLOBAL_NOTHING) != 0 || curl_local_init() != 0) {
     fprintf(stderr, "Error: An error occurred while initializing curl\n");
-    goto cleanup;
+    cleanup(ret);
   }
 
   if (cookie_valid || aur_login() == 0) {
@@ -273,15 +301,7 @@ int main(int argc, char **argv) {
 
   curl_global_cleanup();
 
-cleanup:
-  llist_free(targets, free);
-  if (config->cookies != NULL && ! config->persist) {
-    if (config->verbose > 1)
-      printf("::DEBUG:: Deleting file %s\n", config->cookies);
-
-    delete_file(config->cookies);
-  }
-  config_free(config);
-
+  cleanup(ret);
+  /* never reached */
   return 0;
 }
