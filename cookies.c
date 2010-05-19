@@ -10,12 +10,13 @@ long cookie_expire_time(const char *cookie_file,
                         const char *domain,
                         const char *name) {
   FILE *fd;
-  char buf[COOKIE_SIZE + 1];
+  char line[COOKIE_SIZE + 1];
+  char *lptr;
   struct cookie_t *cookie;
   long expire;
 
   cookie = calloc(1, sizeof *cookie);
-  if (buf == NULL) {
+  if (cookie == NULL) {
     fprintf(stderr, "Error allocating %zd bytes.\n", sizeof *cookie);
     return 0;
   }
@@ -23,12 +24,13 @@ long cookie_expire_time(const char *cookie_file,
   expire = 0;
 
   fd = fopen(cookie_file, "r");
-  while ((fgets(&buf[0], COOKIE_SIZE, fd)) != NULL) {
-    strtrim(&buf[0]);
-    if (*buf == '#' || strlen(buf) == 0)
+  while ((lptr = fgets(&line[0], COOKIE_SIZE, fd)) != NULL) {
+    lptr = strtrim(lptr);
+
+    if (*lptr == '#' || strlen(lptr) == 0)
       continue;
 
-    cookie = cookie_to_struct(buf, &cookie);
+    cookie = cookie_to_struct(lptr, &cookie);
 
     if (STREQ(domain, cookie->domain) && STREQ(name, cookie->name)) {
       expire = cookie->expire;
