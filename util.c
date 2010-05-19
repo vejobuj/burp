@@ -24,6 +24,7 @@
 #include <sys/stat.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "util.h"
 
@@ -36,43 +37,14 @@ void delete_file(const char *filename) {
     unlink(filename);
 }
 
-int file_exists(const char *filename) {
-  struct stat st;
+void die(const char *errstr, ...) {
+  va_list ap;
 
-  return stat(filename, &st) == 0;
+  va_start(ap, errstr);
+  vfprintf(stderr, errstr, ap);
+  va_end(ap);
+  exit(EXIT_FAILURE);
 }
-
-/*
-int cookie_expire_time(const char *cookie_file, const char *site, const char *CID) {
-  FILE *fd;
-  char *buf;
-  int expire;
-  char _[30], cookie_fmt[BUFSIZ + 1];
-
-  buf = calloc(1, BUFSIZ + 1);
-  if (buf == NULL) {
-    fprintf(stderr, "Error allocating %d bytes.\n", BUFSIZ + 1);
-    return 0;
-  }
-
-  expire = 0;
-
-  snprintf(&cookie_fmt[0], BUFSIZ, "%s\t%%s\t/\t%%s\t%%d\t%s\t%%s%%c", site, CID);
-
-  fd = fopen(cookie_file, "r");
-  while ((buf = fgets(buf, BUFSIZ, fd)) != NULL) {
-    if (line_starts_with(buf, site)) {
-      sscanf(buf, cookie_fmt, &_[0], &_[0], &expire, &_[0], &_[0]);
-      break;
-    }
-  }
-  fclose(fd);
-
-  free(buf);
-
-  return expire;
-}
-*/
 
 char *expand_tilde(char *path) {
   if (! line_starts_with(path, "~/"))
@@ -94,6 +66,12 @@ char *expand_tilde(char *path) {
   }
 
   return path;
+}
+
+int file_exists(const char *filename) {
+  struct stat st;
+
+  return stat(filename, &st) == 0;
 }
 
 char* get_password(size_t max_length) {
@@ -195,4 +173,20 @@ int touch(const char *filename) {
   }
 
   return close(fd);
+}
+
+void *xmalloc(size_t size) {
+  void *ret = malloc(size);
+  if (!ret)
+    die("error: failed to allocate %zd bytes", size);
+
+  return ret;
+}
+
+void *xcalloc(size_t nmemb, size_t size) {
+  void *ret = calloc(nmemb, size);
+  if (!ret)
+    die("error: failed to allocate %zd bytes", size);
+
+  return ret;
 }

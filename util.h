@@ -26,8 +26,8 @@
 #define STRNEQ(x,y) strcmp(x,y) != 0
 
 void delete_file(const char*);
+void die(const char*, ...);
 int file_exists(const char*);
-//int cookie_expire_time(const char*, const char*, const char*);
 char *expand_tilde(char*);
 char *get_password(size_t);
 char *get_tmpfile(const char*);
@@ -35,5 +35,7 @@ char *get_username(size_t);
 int line_starts_with(const char*, const char*);
 char *strtrim(char*);
 int touch(const char*);
+void *xcalloc(size_t, size_t);
+void *xmalloc(size_t);
 
 #endif /* _BURP_UTIL_H */
