@@ -52,11 +52,7 @@ char *expand_tilde(char *path) {
 
   char *buf;
 
-  buf = calloc(1, PATH_MAX + 1);
-  if (buf == NULL) {
-    fprintf(stderr, "Error allocating %d bytes.\n", PATH_MAX + 1);
-    return NULL;
-  }
+  buf = xcalloc(1, PATH_MAX + 1);
 
   if (snprintf(buf, PATH_MAX, "%s%s", getenv("HOME"), strchr(path, '/')) > 0) {
     path = buf;
@@ -78,11 +74,7 @@ char* get_password(size_t max_length) {
   struct termios t;
   char *buf;
 
-  buf = calloc(1, max_length + 1);
-  if (buf == NULL) {
-    fprintf(stderr, "Error allocating %zd bytes.\n", max_length + 1);
-    return NULL;
-  }
+  buf = xcalloc(1, max_length + 1);
 
   printf("Enter password: ");
 
@@ -105,11 +97,7 @@ char* get_password(size_t max_length) {
 char *get_tmpfile(const char *format) {
   char *buf;
 
-  buf = calloc(1, PATH_MAX + 1);
-  if (buf == NULL) {
-    fprintf(stderr, "Error allocating %d bytes.\n", PATH_MAX + 1);
-    return NULL;
-  }
+  buf = xcalloc(1, PATH_MAX + 1);
 
   snprintf(buf, PATH_MAX, format, getpid());
 
@@ -119,11 +107,7 @@ char *get_tmpfile(const char *format) {
 char *get_username(size_t max_length) {
   char *buf;
 
-  buf = calloc(1, max_length + 1);
-  if (buf == NULL) {
-    fprintf(stderr, "Error allocating %zd bytes.\n", max_length + 1);
-    return NULL;
-  }
+  buf = xcalloc(1, max_length + 1);
 
   printf("Enter username: ");
 

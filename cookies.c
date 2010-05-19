@@ -15,11 +15,7 @@ long cookie_expire_time(const char *cookie_file,
   struct cookie_t *cookie;
   long expire;
 
-  cookie = calloc(1, sizeof *cookie);
-  if (cookie == NULL) {
-    fprintf(stderr, "Error allocating %zd bytes.\n", sizeof *cookie);
-    return 0;
-  }
+  cookie = xcalloc(1, sizeof *cookie);
 
   expire = 0;
 

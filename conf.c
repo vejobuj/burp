@@ -41,11 +41,7 @@ void config_free(struct config_t *config) {
 }
 
 struct config_t *config_new(void) {
-  struct config_t *config = malloc(sizeof *config);
-  if (config == NULL) {
-    fprintf(stderr, "Error allocating %zd bytes for config.\n", sizeof *config);
-    return NULL;
-  }
+  struct config_t *config = xcalloc(1, sizeof *config);
 
   config->user = config->password = config->cookies = config->category = NULL;
   config->persist = FALSE;
