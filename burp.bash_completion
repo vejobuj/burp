@@ -1,0 +1,47 @@
+#!/bin/bash
+
+_burp() {
+  local cur prev opts categories src ng_set
+
+  # save current nullglob setting and turn it on
+  ng_set=$(shopt -p nullglob)
+  shopt -s nullglob
+
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  prev=${COMP_WORDS[COMP_CWORD-1]}
+
+  # Valid upload categories
+  categories="daemons devel editors emulators games gnome i18n kde kernels lib
+              modules multimedia network office science system x11 xfce"
+
+  # Valid longopts
+  opts="--user --password --category --keep-cookies --cookies --verbose"
+
+  if [[ ${cur} == -* ]]; then
+    COMPREPLY=( $(compgen -W "${opts}" -- $cur ) )
+  else
+    case "$prev" in
+      # complete normally
+      "-C"|"--cookies") 
+        COMPREPLY=( $(compgen -f ${cur}) ) ;;
+
+      "-c"|"--category") COMPREPLY=( $(compgen -W "${categories}" -- $cur ) ) ;;
+
+      # don't complete anything
+      "-u"|"--user"|"-p"|"--password") ;;
+
+      # else, complete *.src.tar.gz files
+      *) COMPREPLY=( $(compgen -W "\
+                   $( for src in *.src.tar.gz; do
+                        echo ${src##*/}
+                      done )" -- $cur ) ) ;;
+    esac
+  fi
+
+  # restore the previous nullglob setting
+  $ng_set
+
+}
+
+complete -F _burp burp
