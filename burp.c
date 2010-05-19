@@ -213,16 +213,6 @@ int main(int argc, char **argv) {
   if (ret != 0)
     cleanup(ret);
 
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Command line options:\n");
-    printf("  config->user = %s\n", config->user);
-    printf("  config->password = %s\n", config->password);
-    printf("  config->cookies = %s\n", config->cookies);
-    printf("  config->persist = %s\n", config->persist ? "true" : "false");
-    printf("  config->category = %s\n", config->category);
-    printf("  config->verbose = %d\n", config->verbose);
-  }
-
   /* Ensure we have a proper config environment */
   if (config->category == NULL)
     config->category = "None";
@@ -245,6 +235,16 @@ int main(int argc, char **argv) {
   if (! ((config->user && config->password) || config->cookies))
     read_config_file();
 
+  if (config->verbose > 1) {
+    printf("::DEBUG:: Runtime options:\n");
+    printf("  config->user = %s\n", config->user);
+    printf("  config->password = %s\n", config->password);
+    printf("  config->cookies = %s\n", config->cookies);
+    printf("  config->persist = %s\n", config->persist ? "true" : "false");
+    printf("  config->category = %s\n", config->category);
+    printf("  config->verbose = %d\n", config->verbose);
+  }
+
   /* Quick sanity check */
   if (config->persist && ! config->cookies) {
     fprintf(stderr, "%s: Error parsing options: do not specify persistent "
@@ -252,6 +252,7 @@ int main(int argc, char **argv) {
                     argv[0]);
     cleanup(ret);
   }
+
 
   int cookie_valid = FALSE;
   /* Determine how we'll login -- either by cookie or credentials */
