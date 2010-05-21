@@ -45,13 +45,13 @@ long cookie_expire_time(const char *cookie_file,
 }
 
 struct cookie_t *cookie_to_struct(char *co, struct cookie_t **cookie) {
-  (*cookie)->domain = strsep(&co, "\t");
-  (*cookie)->secure = STREQ(strsep(&co, "\t"), "TRUE") ? 1 : 0;
-  (*cookie)->path = strsep(&co, "\t");
-  (*cookie)->hostonly = STREQ(strsep(&co, "\t"), "TRUE") ? 1: 0;
-  (*cookie)->expire = strtol(strsep(&co, "\t"), NULL, 10);
-  (*cookie)->name = strsep(&co, "\t");
-  (*cookie)->value = strsep(&co, "\t");
+  (*cookie)->domain   = strtok(co, "\t");
+  (*cookie)->secure   = STREQ(strtok(NULL, "\t"), "TRUE") ? 1 : 0;
+  (*cookie)->path     = strtok(NULL, "\t");
+  (*cookie)->httponly = STREQ(strtok(NULL, "\t"), "TRUE") ? 1: 0;
+  (*cookie)->expire   = strtol(strtok(NULL, "\t"), NULL, 10);
+  (*cookie)->name     = strtok(NULL, "\t");
+  (*cookie)->value    = strtok(NULL, "\t");
 
   return *cookie;
 }
