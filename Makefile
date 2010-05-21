@@ -16,7 +16,7 @@ options:
 	@echo "LDFLAGS   = ${LDFLAGS}"
 
 .c.o:
-	@printf "   %-8s %s\n" CC $<
+	@printf "   %-8s %s\n" CC $@
 	@${CC} -c ${CFLAGS} $<
 
 ${OBJ}: config.mk
@@ -33,8 +33,9 @@ burp.1: README.pod
 dist: clean
 	@mkdir -p burp-${VERSION}
 	@cp -R ${SRC} *.h README.pod Makefile burp-${VERSION}
+	@printf "   %-8s %s\n" TAR burp-${VERSION}.tar
 	@tar -cf burp-${VERSION}.tar burp-${VERSION}
-	@printf "   %-8s %s\n" GZIP burp-${VERSION}.tar
+	@printf "   %-8s %s\n" GZIP burp-${VERSION}.tar.gz
 	@gzip burp-${VERSION}.tar
 	@rm -rf burp-${VERSION}
 
