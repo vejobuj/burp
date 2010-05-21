@@ -24,7 +24,7 @@ struct cookie_t {
   char *domain;
   int secure;
   char *path;
-  int hostonly;
+  int httponly;
   long expire;
   char *name;
   char *value;
