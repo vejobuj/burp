@@ -1,16 +1,13 @@
-# dmenu version
+# burp version
 VERSION = $(shell git describe)
-
-# Customize below to fit your system
 
 # paths
 PREFIX = /usr/local
 MANPREFIX = ${PREFIX}/share/man
 
-CURLINC = /usr/include/curl
-CURLLIB = /usr/lib/
-
 # includes and libs
+CURLINC = /usr/include/curl
+
 INCS = -I. -I/usr/include -I${CURLINC}
 LIBS = -L/usr/lib -lc -lcurl
 
