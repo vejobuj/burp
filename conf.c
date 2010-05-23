@@ -52,23 +52,26 @@ struct config_t *config_new(void) {
 }
 
 int read_config_file() {
-  int ret;
-  char *ptr;
+  int ret = 0;
+  char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
 
-  snprintf(&config_path[0], PATH_MAX, "%s/%s", 
-    getenv("XDG_CONFIG_HOME"), "burp/burp.conf");
+  xdg_config_home = getenv("XDG_CONFIG_HOME");
+  if (xdg_config_home)
+    snprintf(&config_path[0], PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
+  else
+    snprintf(&config_path[0], PATH_MAX, "%s/.config/burp/burp.conf",
+      getenv("HOME"));
 
   if (! file_exists(config_path)) {
     if (config->verbose > 1)
       printf("::DEBUG:: No config file found\n");
-    return 0;
+    return ret;
   }
 
   if (config->verbose > 1)
     printf("::DEBUG:: Found config file\n");
 
-  ret = 0;
   FILE *conf_fd = fopen(config_path, "r");
   while (fgets(line, BUFSIZ, conf_fd)) {
     strtrim(line);
