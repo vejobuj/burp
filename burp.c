@@ -63,6 +63,77 @@ static int category_is_valid(const char *cat) {
   return ! bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat);
 }
 
+static int read_config_file() {
+  int ret = 0;
+  char *ptr, *xdg_config_home;
+  char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
+
+  xdg_config_home = getenv("XDG_CONFIG_HOME");
+  if (xdg_config_home)
+    snprintf(&config_path[0], PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
+  else
+    snprintf(&config_path[0], PATH_MAX, "%s/.config/burp/burp.conf",
+      getenv("HOME"));
+
+  if (! file_exists(config_path)) {
+    if (config->verbose > 1)
+      printf("::DEBUG:: No config file found\n");
+    return ret;
+  }
+
+  if (config->verbose > 1)
+    printf("::DEBUG:: Found config file\n");
+
+  FILE *conf_fd = fopen(config_path, "r");
+  while (fgets(line, BUFSIZ, conf_fd)) {
+    strtrim(line);
+
+    if (line[0] == '#' || strlen(line) == 0)
+      continue;
+
+    if ((ptr = strchr(line, '#'))) {
+      *ptr = '\0';
+    }
+
+    char *key;
+    key = ptr = line;
+    strsep(&ptr, "=");
+    strtrim(key);
+    strtrim(ptr);
+
+    if (STREQ(key, "User")) {
+      if (config->user == NULL) {
+        config->user = strndup(ptr, AUR_USER_MAX);
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using username: %s\n", config->user);
+      }
+    } else if (STREQ(key, "Password")) {
+      if (config->password == NULL) {
+        config->password = strndup(ptr, AUR_PASSWORD_MAX);
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using password from config file.\n");
+      }
+    } else if (STREQ(key, "Cookies")) {
+      if (config->cookies == NULL) {
+        config->cookies = expand_tilde(ptr);
+
+        if (config->verbose > 1)
+          printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+      }
+    } else if (STREQ(key, "Persist")) {
+      config->persist = TRUE;
+    } else {
+      fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
+      ret = 1;
+      break;
+    }
+  }
+
+  fclose(conf_fd);
+
+  return ret;
+}
+
 static void usage() {
 printf("burp %s\n\
 Usage: burp [options] PACKAGE [PACKAGE2..]\n\

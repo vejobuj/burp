@@ -30,7 +30,6 @@ struct config_t {
   int verbose;
 };
 
-int read_config_file(void);
 struct config_t *config_new(void);
 void config_free(struct config_t*);
 
