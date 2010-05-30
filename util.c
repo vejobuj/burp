@@ -70,11 +70,11 @@ int file_exists(const char *filename) {
   return stat(filename, &st) == 0;
 }
 
-char* get_password(size_t max_length) {
+char* get_password(size_t maxlen) {
   struct termios t;
   char *buf;
 
-  buf = xcalloc(1, max_length + 1);
+  buf = xcalloc(1, ++maxlen);
 
   printf("Enter password: ");
 
@@ -84,7 +84,7 @@ char* get_password(size_t max_length) {
   tcsetattr(fileno(stdin), TCSANOW, &t);
 
   /* fgets() will leave a newline char on the end */
-  fgets(buf, max_length, stdin);
+  fgets(buf, maxlen, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
   putchar('\n');
@@ -104,15 +104,15 @@ char *get_tmpfile(const char *format) {
   return buf;
 }
 
-char *get_username(size_t max_length) {
+char *get_username(size_t maxlen) {
   char *buf;
 
-  buf = xcalloc(1, max_length + 1);
+  buf = xcalloc(1, ++maxlen);
 
   printf("Enter username: ");
 
   /* fgets() will leave a newline char on the end */
-  fgets(buf, max_length, stdin);
+  fgets(buf, maxlen, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
   return buf;

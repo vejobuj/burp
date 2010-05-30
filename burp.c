@@ -66,7 +66,7 @@ static int category_is_valid(const char *cat) {
 static int read_config_file() {
   int ret = 0;
   char *ptr, *xdg_config_home;
-  char config_path[PATH_MAX + 1], line[BUFSIZ + 1];
+  char config_path[PATH_MAX + 1], line[BUFSIZ];
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home)
