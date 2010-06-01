@@ -56,11 +56,13 @@ static int fn_cmp_cat (const void *c1, const void *c2) {
 }
 
 static int category_is_valid(const char *cat) {
-  struct category key;
+  struct category key, *res;
 
   key.name = cat;
 
-  return ! bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat);
+  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat);
+
+  return res ? res->num : 0;
 }
 
 static int read_config_file() {
@@ -288,7 +290,8 @@ int main(int argc, char **argv) {
   if (config->category == NULL)
     config->category = "None";
   else
-    if (category_is_valid(config->category) > 0) {
+    config->catnum = category_is_valid(config->category);
+    if (config->catnum == 0) {
       usage_categories();
       cleanup(ret);
     }
