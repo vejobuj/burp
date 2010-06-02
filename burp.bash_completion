@@ -44,4 +44,4 @@ _burp() {
 
 }
 
-complete -F _burp burp
+complete -o plusdirs -F _burp burp
