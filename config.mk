@@ -2,7 +2,7 @@
 VERSION = $(shell git describe)
 
 # paths
-PREFIX = /usr/local
+PREFIX = /usr
 MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs

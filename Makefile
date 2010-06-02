@@ -32,7 +32,8 @@ burp.1: README.pod
 
 dist: clean
 	@mkdir -p burp-${VERSION}
-	@cp -R ${SRC} *.h README.pod config.mk Makefile burp-${VERSION}
+	@cp -R ${SRC} *.h README.pod Makefile burp.bash_completion burp-${VERSION}
+	@sed "s/^VERSION.*/VERSION = ${VERSION}/g" < config.mk > burp-${VERSION}/config.mk
 	@printf "   %-8s %s\n" TAR burp-${VERSION}.tar
 	@tar -cf burp-${VERSION}.tar burp-${VERSION}
 	@printf "   %-8s %s\n" GZIP burp-${VERSION}.tar.gz
@@ -44,15 +45,15 @@ clean:
 	@rm -f *.o burp burp.1
 
 install: burp doc
-	@echo installing executable to ${DESTDIR}${PREFIX}/bin
+	@printf "   %-8s %s\n" INSTALL burp
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f burp ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/burp
-	@echo installing man page to ${DESTDIR}${MANPREFIX}
+	@printf "   %-8s %s\n" INSTALL burp.1
 	@mkdir -p ${DESTDIR}/${MANPREFIX}/man1
 	@sed "s/VERSION/${VERSION}/g" < burp.1 > ${DESTDIR}${MANPREFIX}/man1/burp.1
 	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/burp.1
-	@echo installing bash completion function to ${DESTDIR}/etc/bash_completion.d/
+	@printf "   %-8s %s\n" INSTALL burp.bash_completion
 	@mkdir -p ${DESTDIR}/etc/bash_completion.d
 	@cp -f burp.bash_completion ${DESTDIR}/etc/bash_completion.d/burp
 
