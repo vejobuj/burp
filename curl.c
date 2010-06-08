@@ -189,12 +189,16 @@ long aur_upload(const char *taurball) {
     goto cleanup;
   }
 
-  if (strstr(response.memory, AUR_NO_OVERWRITE) != NULL) {
+  if (strstr(response.memory, AUR_NO_OVERWRITE)) {
     fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
     ret = 1;
-  } else if (strstr(response.memory, AUR_UNKNOWN_FORMAT) != NULL) {
+  } else if (strstr(response.memory, AUR_UNKNOWN_FORMAT)) {
     fprintf(stderr, "Error: Incorrect file format. Upload must conform to AUR "
                     "packaging guidelines.\n");
+    ret = 1;
+  } else if (strstr(response.memory, AUR_INVALID_NAME)) {
+    fprintf(stderr, "Error: Invalid package name. Only lowercase letters are "
+                    "allowed. Make sure this isn't a split package.\n");
     ret = 1;
   } else {
     char *basename;

@@ -37,6 +37,7 @@
 #define AUR_LOGIN_FAIL_MSG      "Bad username or password."
 #define AUR_NO_OVERWRITE        "not allowed to overwrite"
 #define AUR_UNKNOWN_FORMAT      "Unknown file format"
+#define AUR_INVALID_NAME        "Invalid name"
 
 struct write_result {
   char *memory;
