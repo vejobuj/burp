@@ -189,6 +189,9 @@ long aur_upload(const char *taurball) {
     goto cleanup;
   }
 
+  char missing_var[10];
+  char *ptr;
+
   if (strstr(response.memory, AUR_NO_OVERWRITE)) {
     fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
     ret = 1;
@@ -199,6 +202,19 @@ long aur_upload(const char *taurball) {
   } else if (strstr(response.memory, AUR_INVALID_NAME)) {
     fprintf(stderr, "Error: Invalid package name. Only lowercase letters are "
                     "allowed. Make sure this isn't a split package.\n");
+    ret = 1;
+  } else if (strstr(response.memory, AUR_NO_PKGBUILD)) {
+    fprintf(stderr, "Error: PKGBUILD does not exist in uploaded source.\n");
+    ret = 1;
+  } else if (strstr(response.memory, AUR_NO_BUILD_FUNC)) {
+    fprintf(stderr, "Error: PKGBUILD is missing build function.\n");
+    ret = 1;
+  } else if (strstr(response.memory, AUR_MISSING_PROTO)) { 
+    fprintf(stderr, "Error: Package URL is missing a protocol\n");
+    ret = 1;
+  } else if ((ptr = strstr(response.memory, "Missing")) && 
+              sscanf(ptr, AUR_MISSING_VAR, missing_var)) {
+    fprintf(stderr, "Error: Package is missing %s variable\n", missing_var);
     ret = 1;
   } else {
     char *basename;

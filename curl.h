@@ -35,9 +35,18 @@
 #define AUR_REMEMBERME_FIELD    "remember_me"
 
 #define AUR_LOGIN_FAIL_MSG      "Bad username or password."
+
+/* upload errors */
 #define AUR_NO_OVERWRITE        "not allowed to overwrite"
 #define AUR_UNKNOWN_FORMAT      "Unknown file format"
 #define AUR_INVALID_NAME        "Invalid name"
+#define AUR_NO_PKGBUILD         "PKGBUILD does not exist"
+#define AUR_NO_BUILD_FUNC       "Missing build function"
+#define AUR_MISSING_VAR         "Missing %s variable in PKGBUILD"
+#define AUR_MISSING_PROTO       "missing a protocol"
+
+
+
 
 struct write_result {
   char *memory;
