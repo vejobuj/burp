@@ -126,6 +126,10 @@ static int read_config_file() {
               printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
           }
           wordfree(&p);
+        } else {
+          perror("wordexp");
+          ret = errno;
+          break;
         }
       }
     } else if (STREQ(key, "Persist")) {
