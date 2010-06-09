@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <wordexp.h>
 
 #include "conf.h"
 #include "cookies.h"
@@ -117,10 +118,15 @@ static int read_config_file() {
       }
     } else if (STREQ(key, "Cookies")) {
       if (config->cookies == NULL) {
-        config->cookies = expand_tilde(ptr);
-
-        if (config->verbose > 1)
-          printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+        wordexp_t p;
+        if (wordexp(ptr, &p, 0) == 0) {
+          if (p.we_wordc == 1) {
+            config->cookies = strdup(p.we_wordv[0]);
+            if (config->verbose >= 2)
+              printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+          }
+          wordfree(&p);
+        }
       }
     } else if (STREQ(key, "Persist")) {
       config->persist = TRUE;

@@ -46,24 +46,6 @@ void die(const char *errstr, ...) {
   exit(EXIT_FAILURE);
 }
 
-char *expand_tilde(char *path) {
-  if (! line_starts_with(path, "~/"))
-    return strndup(path, PATH_MAX);
-
-  char *buf;
-
-  buf = xcalloc(1, PATH_MAX + 1);
-
-  if (snprintf(buf, PATH_MAX, "%s%s", getenv("HOME"), strchr(path, '/')) > 0) {
-    path = buf;
-  } else {
-    fprintf(stderr, "Error expanding path: %s\n", path);
-    free(buf);
-  }
-
-  return path;
-}
-
 int file_exists(const char *filename) {
   struct stat st;
 
