@@ -124,6 +124,8 @@ static int read_config_file() {
             config->cookies = strdup(p.we_wordv[0]);
             if (config->verbose >= 2)
               printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+          } else {
+            fprintf(stderr, "Ambiguous path to cookie file. Ignoring config option.\n");
           }
           wordfree(&p);
         } else {
@@ -311,10 +313,10 @@ int main(int argc, char **argv) {
     cleanup(ret);
   }
 
-  /* We can't read the config file without having verbosity set, but
-   * the command line options need to take precedence over the config.
-   * file. Therefore, if a user/pass OR a cookie file is supplied on
-   * the command line, we won't read the config file.
+  /* We can't read the config file without having verbosity set, but the
+   * command line options need to take precedence over the config.  file.
+   * Therefore, if ((user && pass) || cookie file) is supplied on the command
+   * line, we won't read the config file.
    */
   if (! ((config->user && config->password) || config->cookies))
     read_config_file();
