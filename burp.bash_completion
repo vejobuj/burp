@@ -32,10 +32,7 @@ _burp() {
       "-u"|"--user"|"-p"|"--password") ;;
 
       # else, complete *.src.tar.gz files
-      *) COMPREPLY=( $(compgen -W "\
-                   $( for src in *.src.tar.gz; do
-                        echo ${src##*/}
-                      done )" -- $cur ) ) ;;
+      *) COMPREPLY=( $(compgen -f -X '!*(*.src.tar.gz)' -- $cur) ) ;;
     esac
   fi
 
