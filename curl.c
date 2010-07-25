@@ -112,6 +112,10 @@ long aur_login(void) {
     goto cleanup;
   }
 
+  if (config->verbose > 1) {
+    printf("%s\n", response.memory);
+  }
+
   if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
     fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
     ret = 1L; /* Reuse an uncommon curl error */
@@ -192,7 +196,14 @@ long aur_upload(const char *taurball) {
   char missing_var[10];
   char *ptr;
 
-  if (strstr(response.memory, AUR_NO_OVERWRITE)) {
+  if (config->verbose > 1) {
+    printf("%s\n", response.memory);
+  }
+
+  if (strstr(response.memory, AUR_NO_LOGIN)) {
+    fprintf(stderr, "Error: Authentication failed on upload. Your cookie probably expired.\n");
+    ret = 1;
+  } else if (strstr(response.memory, AUR_NO_OVERWRITE)) {
     fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
     ret = 1;
   } else if (strstr(response.memory, AUR_UNKNOWN_FORMAT)) {
