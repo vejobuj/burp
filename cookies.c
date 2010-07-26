@@ -45,9 +45,7 @@ long cookie_expire_time(const char *cookie_file,
 }
 
 int cookie_still_valid(long expire) {
-  time_t now = time(NULL);
-
-  return (expire < (long)now) ? 0 : 1;
+  return (time(NULL) < expire);
 }
 
 struct cookie_t *cookie_to_struct(char *co, struct cookie_t **cookie) {

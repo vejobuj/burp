@@ -359,7 +359,7 @@ int main(int argc, char **argv) {
     } else { /* assume its a real cookie file and evaluate it */
       long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
-        if (cookie_still_valid(expire) != 0)
+        if (cookie_still_valid(expire))
           cookie_valid = TRUE;
         else
           fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
