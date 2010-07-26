@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <unistd.h>
 #include <wordexp.h>
 
@@ -268,6 +269,12 @@ static void trap_handler(int signum) {
     xwrite(err, msg, strlen(msg));
     exit(signum);
   } else if (signum == SIGINT) {
+    struct termios t;
+
+    tcgetattr(fileno(stdin), &t);
+    t.c_lflag |= ECHO;
+    tcsetattr(fileno(stdin), TCSANOW, &t);
+
     const char *msg = "\nCaught user interrupt, exiting...\n";
     xwrite(err, msg, strlen(msg));
   }
