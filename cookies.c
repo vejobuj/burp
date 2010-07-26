@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <time.h>
 
 #include "conf.h"
 #include "cookies.h"
@@ -40,6 +42,12 @@ long cookie_expire_time(const char *cookie_file,
   free(cookie);
 
   return expire;
+}
+
+int cookie_still_valid(long expire) {
+  time_t now = time(NULL);
+
+  return (expire < (long)now) ? 0 : 1;
 }
 
 struct cookie_t *cookie_to_struct(char *co, struct cookie_t **cookie) {

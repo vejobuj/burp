@@ -350,8 +350,13 @@ int main(int argc, char **argv) {
         cleanup(ret);
       }
     } else { /* assume its a real cookie file and evaluate it */
-      if (cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME) > 0)
-        cookie_valid = TRUE;
+      long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
+      if (expire > 0) {
+        if (cookie_still_valid(expire) != 0)
+          cookie_valid = TRUE;
+        else
+          fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
+      }
     }
   } else { /* create PID based file in /tmp */
     if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {

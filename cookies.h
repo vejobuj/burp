@@ -31,6 +31,7 @@ struct cookie_t {
 };
 
 struct cookie_t *cookie_to_struct(char*, struct cookie_t**);
+int cookie_still_valid(long);
 long cookie_expire_time(const char*, const char*, const char*);
 
 #endif /* _BURP_COOKIES_H */
