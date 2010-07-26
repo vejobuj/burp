@@ -201,7 +201,7 @@ long aur_upload(const char *taurball) {
   }
 
   if (strstr(response.memory, AUR_NO_LOGIN)) {
-    fprintf(stderr, "Error: Authentication failed on upload. Your cookie probably expired.\n");
+    fprintf(stderr, "Error: Authentication failed on upload.\n");
     ret = 1;
   } else if (strstr(response.memory, AUR_NO_OVERWRITE)) {
     fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
