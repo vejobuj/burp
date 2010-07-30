@@ -24,7 +24,7 @@ _burp() {
     case "$prev" in
       # complete normally
       "-C"|"--cookies") 
-        COMPREPLY=( $(compgen -f ${cur}) ) ;;
+        COMPREPLY=( $(compgen -f -- ${cur}) ) ;;
 
       "-c"|"--category") COMPREPLY=( $(compgen -W "${categories}" -- $cur ) ) ;;
 

@@ -28,7 +28,7 @@ burp: ${OBJ}
 doc: burp.1
 burp.1: README.pod
 	@printf "   %-8s %s\n" DOC burp.1
-	@pod2man --section=1 --center=" " --release=" " --name="BURP" --date="burp-VERSION" README.pod > burp.1
+	@pod2man --section=1 --center="Burp Manual" --name="BURP" --release="burp ${VERSION}" README.pod > burp.1
 
 dist: clean
 	@mkdir -p burp-${VERSION}
@@ -46,16 +46,11 @@ clean:
 
 install: burp doc
 	@printf "   %-8s %s\n" INSTALL burp
-	@mkdir -p ${DESTDIR}${PREFIX}/bin
-	@cp -f burp ${DESTDIR}${PREFIX}/bin
-	@chmod 755 ${DESTDIR}${PREFIX}/bin/burp
-	@printf "   %-8s %s\n" INSTALL burp.1
-	@mkdir -p ${DESTDIR}/${MANPREFIX}/man1
-	@sed "s/VERSION/${VERSION}/g" < burp.1 > ${DESTDIR}${MANPREFIX}/man1/burp.1
-	@chmod 644 ${DESTDIR}${MANPREFIX}/man1/burp.1
+	@install -D -m755 burp ${DESTDIR}${PREFIX}/bin/burp
 	@printf "   %-8s %s\n" INSTALL burp.bash_completion
-	@mkdir -p ${DESTDIR}/etc/bash_completion.d
-	@cp -f burp.bash_completion ${DESTDIR}/etc/bash_completion.d/burp
+	@install -D -m644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
+	@printf "   %-8s %s\n" INSTALL burp.1
+	@install -D -m644 burp.1 ${DESTDIR}${MANPREFIX}/man1/burp.1
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
