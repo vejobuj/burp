@@ -32,7 +32,7 @@ burp.1: README.pod
 
 dist: clean
 	@mkdir -p burp-${VERSION}
-	@cp -R ${SRC} *.h README.pod Makefile burp.bash_completion burp-${VERSION}
+	@cp -R ${SRC} *.h README.pod Makefile bash_completion burp-${VERSION}
 	@sed "s/^VERSION.*/VERSION = ${VERSION}/g" < config.mk > burp-${VERSION}/config.mk
 	@printf "   %-8s %s\n" TAR burp-${VERSION}.tar
 	@tar -cf burp-${VERSION}.tar burp-${VERSION}
@@ -47,7 +47,7 @@ clean:
 install: burp doc
 	@printf "   %-8s %s\n" INSTALL burp
 	@install -D -m755 burp ${DESTDIR}${PREFIX}/bin/burp
-	@printf "   %-8s %s\n" INSTALL burp.bash_completion
+	@printf "   %-8s %s\n" INSTALL bash_completion
 	@install -D -m644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
 	@printf "   %-8s %s\n" INSTALL burp.1
 	@install -D -m644 burp.1 ${DESTDIR}${MANPREFIX}/man1/burp.1
