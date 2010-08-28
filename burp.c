@@ -275,7 +275,7 @@ static void trap_handler(int signum) {
     t.c_lflag |= ECHO;
     tcsetattr(fileno(stdin), TCSANOW, &t);
 
-    const char *msg = "\nCaught user interrupt, exiting...\n";
+    const char *msg = "\nCaught user interrupt\n";
     xwrite(err, msg, strlen(msg));
   }
 
