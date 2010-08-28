@@ -46,11 +46,11 @@ void llist_free(struct llist_t *list, llist_fn_free fn) {
   struct llist_t *it = list;
 
   while (it) {
-    struct llist_t *tmp = it->next;
+    struct llist_t *next = it->next;
     if (fn && it->data)
       fn(it->data);
     free(it);
-    it = tmp;
+    it = next;
   }
 }
 
