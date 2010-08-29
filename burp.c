@@ -154,6 +154,7 @@ printf("burp %s\n\
 Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 \n\
  Options:\n\
+  -h, --help                Shows this help message.\n\
   -u, --user                AUR login username.\n\
   -p, --password            AUR login password.\n\
   -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n\
@@ -183,6 +184,7 @@ static int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
   static struct option opts[] = {
+    {"help",          no_argument,        0, 'h'},
     {"user",          required_argument,  0, 'u'},
     {"password",      required_argument,  0, 'p'},
     {"keep-cookies",  no_argument,        0, 'k'},
@@ -192,12 +194,15 @@ static int parseargs(int argc, char **argv) {
     {0, 0, 0, 0}
   };
 
-  while ((opt = getopt_long(argc, argv, "u:p:kc:C:v", opts, &option_index))) {
+  while ((opt = getopt_long(argc, argv, "hu:p:kc:C:v", opts, &option_index))) {
     if (opt < 0) {
       break;
     }
 
     switch (opt) {
+      case 'h':
+        usage();
+        exit(0);
       case 'c':
         if (config->category)
           FREE(config->category);
