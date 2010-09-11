@@ -32,7 +32,7 @@ _burp() {
       "-u"|"--user"|"-p"|"--password") ;;
 
       # else, complete *.src.tar.gz files
-      *) COMPREPLY=( $(compgen -f -X '!*(*.src.tar.gz)' -- $cur) ) ;;
+      *) COMPREPLY=( $(compgen -f -X '!*.src.tar.gz' -- $cur) ) ;;
     esac
   fi
 
