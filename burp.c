@@ -392,8 +392,11 @@ int main(int argc, char **argv) {
 
     if (config->user == NULL)
       config->user = get_username(AUR_USER_MAX);
-    if (config->password == NULL)
+
+    if (config->password == NULL) {
+      printf("[%s] ", config->user);
       config->password = get_password(AUR_PASSWORD_MAX);
+    }
   }
 
   if (curl_global_init(CURL_GLOBAL_NOTHING) != 0 || curl_local_init() != 0) {
