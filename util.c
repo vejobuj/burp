@@ -61,7 +61,7 @@ int file_exists(const char *filename) {
   return stat(filename, &st) == 0;
 }
 
-char* get_password(size_t maxlen) {
+char *get_password(size_t maxlen) {
   struct termios t;
   char *buf;
 
@@ -143,9 +143,8 @@ int touch(const char *filename) {
   fd = open(filename, O_WRONLY | O_CREAT | O_NONBLOCK | O_NOCTTY,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-  if (fd == -1) {
+  if (fd == -1)
     return 1;
-  }
 
   return close(fd);
 }
