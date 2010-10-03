@@ -339,7 +339,7 @@ int main(int argc, char **argv) {
    * Therefore, if ((user && pass) || cookie file) is supplied on the command
    * line, we won't read the config file.
    */
-  if (! ((config->user && config->password) || config->cookies))
+  if (! (config->user || config->cookies))
     read_config_file();
 
   if (config->verbose > 1) {
