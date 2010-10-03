@@ -40,7 +40,6 @@ int file_exists(const char*);
 char *get_password(size_t);
 char *get_tmpfile(const char*);
 char *get_username(size_t);
-int line_starts_with(const char*, const char*);
 char *strtrim(char*);
 int touch(const char*);
 void *xcalloc(size_t, size_t);

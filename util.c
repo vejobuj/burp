@@ -109,10 +109,6 @@ char *get_username(size_t maxlen) {
   return buf;
 }
 
-int line_starts_with(const char *line, const char *starts_with) {
-  return strncmp(line, starts_with, strlen(starts_with)) == 0;
-}
-
 char *strtrim(char *str) {
   char *pch = str;
 
