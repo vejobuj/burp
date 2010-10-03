@@ -88,9 +88,7 @@ char *get_password(size_t maxlen) {
 char *get_tmpfile(const char *format) {
   char *buf;
 
-  buf = xcalloc(1, PATH_MAX + 1);
-
-  snprintf(buf, PATH_MAX, format, getpid());
+  asprintf(&buf, format, getpid());
 
   return buf;
 }
