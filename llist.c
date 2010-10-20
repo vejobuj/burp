@@ -51,7 +51,7 @@ struct llist_t *llist_add(struct llist_t *list, void *data) {
   return list;
 }
 
-void llist_free(struct llist_t *list, llist_fn_free fn) {
+void llist_free(struct llist_t *list, void (*fn)(void*)) {
   struct llist_t *it = list;
 
   while (it) {
