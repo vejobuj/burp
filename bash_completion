@@ -1,11 +1,10 @@
 #!/bin/bash
 
 _burp() {
-  local cur prev opts categories src ng_set
+  local cur prev opts categories src ng
 
-  # save current nullglob setting and turn it on
-  ng_set=$(shopt -p nullglob)
-  shopt -s nullglob
+  # nullglob avoids problems when no results are found
+  [[ ! -o nullglob ]] && { shopt -s nullglob; ng=1; }
 
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -36,8 +35,8 @@ _burp() {
     esac
   fi
 
-  # restore the previous nullglob setting
-  $ng_set
+  # restore nullglob setting
+  [[ $ng ]] && shopt -u nullglob
 
 }
 
