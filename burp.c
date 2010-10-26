@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (curl_global_init(CURL_GLOBAL_NOTHING) != 0 || curl_local_init() != 0) {
+  if (curl_global_init(CURL_GLOBAL_SSL) != 0 || curl_local_init() != 0) {
     fprintf(stderr, "Error: An error occurred while initializing curl\n");
     cleanup(ret);
   }
