@@ -1,37 +1,35 @@
 #!/bin/bash
 
 _burp() {
-  local cur prev opts categories src ng
+  local cur prev opts categories ng
 
-  # nullglob avoids problems when no results are found
-  [[ ! -o nullglob ]] && { shopt -s nullglob; ng=1; }
-
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
-  prev=${COMP_WORDS[COMP_CWORD-1]}
+  _get_comp_words_by_ref cur prev
 
   # Valid upload categories
   categories="daemons devel editors emulators games gnome i18n kde kernels lib
               modules multimedia network office science system x11 xfce"
 
   # Valid longopts
-  opts="--user --password --category --keep-cookies --cookies --verbose"
+  opts="-u --user -p --password -c --category -k --keep-cookies -C --cookies -v --verbose"
 
-  if [[ ${cur} == -* ]]; then
-    COMPREPLY=( $(compgen -W "${opts}" -- $cur ) )
+  # nullglob avoids problems when no results are found
+  [[ -o nullglob ]] || { shopt -s nullglob; ng=1; }
+
+  if [[ $cur == -* ]]; then
+    COMPREPLY=( $(compgen -W "$opts" -- $cur ) )
   else
     case "$prev" in
       # complete normally
       "-C"|"--cookies") 
-        COMPREPLY=( $(compgen -f -- ${cur}) ) ;;
+        COMPREPLY=( $(compgen -f -- $cur) ) ;;
 
-      "-c"|"--category") COMPREPLY=( $(compgen -W "${categories}" -- $cur ) ) ;;
+      "-c"|"--category") COMPREPLY=($(compgen -W "$categories" -- $cur)) ;;
 
       # don't complete anything
       "-u"|"--user"|"-p"|"--password") ;;
 
       # else, complete *.src.tar.gz files
-      *) COMPREPLY=( $(compgen -f -X '!*.src.tar.gz' -- $cur) ) ;;
+      *) COMPREPLY=($(compgen -f -X '!*.src.tar.gz' -- $cur)) ;;
     esac
   fi
 
