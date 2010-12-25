@@ -38,9 +38,9 @@
 #include "util.h"
 
 void delete_file(const char *filename) {
-  if (filename == NULL) return;
-
   struct stat st;
+
+  if (filename == NULL) return;
 
   if (stat(filename, &st) == 0)
     unlink(filename);

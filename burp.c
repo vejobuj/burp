@@ -80,6 +80,7 @@ static int read_config_file() {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
+  FILE *conf_fd = fopen(config_path, "r");
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home)
@@ -97,8 +98,8 @@ static int read_config_file() {
   if (config->verbose > 1)
     printf("::DEBUG:: Found config file\n");
 
-  FILE *conf_fd = fopen(config_path, "r");
   while (fgets(line, BUFSIZ, conf_fd)) {
+    char *key;
     strtrim(line);
 
     if (line[0] == '#' || strlen(line) == 0)
@@ -108,7 +109,6 @@ static int read_config_file() {
       *ptr = '\0';
     }
 
-    char *key;
     key = ptr = line;
     strsep(&ptr, "=");
     strtrim(key);
@@ -159,31 +159,32 @@ static int read_config_file() {
 }
 
 static void usage() {
-printf("burp %s\n\
-Usage: burp [options] PACKAGE [PACKAGE2..]\n\
-\n\
- Options:\n\
-  -h, --help                Shows this help message.\n\
-  -u, --user                AUR login username.\n\
-  -p, --password            AUR login password.\n\
-  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n\
-                              This will default to the current category\n\
-                              for pre-existing packages and 'None' for new\n\
-                              packages. -c help will give a list of valid\n\
-                              categories.\n\
-  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n\
-                              temporary file. Useful with the -k option.\n\
-  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n\
-                              If you specify this option, you must also provide\n\
-                              a path to a cookie file.\n\
-  -v, --verbose             be more verbose. Pass twice for debug info.\n\n\
-  burp also honors a config file. See burp(1) for more information.\n\n",
-  VERSION);
+  fprintf(stderr, "burp %s\n"
+  "Usage: burp [options] targets...\n\n"
+  " Options:\n"
+  "  -h, --help                Shows this help message.\n"
+  "  -u, --user                AUR login username.\n"
+  "  -p, --password            AUR login password.\n", VERSION);
+  fprintf(stderr,
+  "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
+  "                              This will default to the current category\n"
+  "                              for pre-existing packages and 'None' for new\n"
+  "                              packages. -c help will give a list of valid\n"
+  "                              categories.\n");
+  fprintf(stderr,
+  "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
+  "                              temporary file. Useful with the -k option.\n"
+  "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
+  "                              If you specify this option, you must also provide\n"
+  "                              a path to a cookie file.\n"
+  "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
+  "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
 static void usage_categories() {
-  printf("Valid categories are:\n");
   unsigned i;
+
+  printf("Valid categories are:\n");
   for (i = 0; i < NUM_CATEGORIES; i++)
     printf("\t%s\n", categories[i].name);
   putchar('\n');
@@ -284,12 +285,12 @@ static void trap_handler(int signum) {
     exit(signum);
   } else if (signum == SIGINT) {
     struct termios t;
+    const char *msg = "\nCaught user interrupt\n";
 
     tcgetattr(fileno(stdin), &t);
     t.c_lflag |= ECHO;
     tcsetattr(fileno(stdin), TCSANOW, &t);
 
-    const char *msg = "\nCaught user interrupt\n";
     xwrite(err, msg, strlen(msg));
   }
 
@@ -297,7 +298,7 @@ static void trap_handler(int signum) {
 }
 
 int main(int argc, char **argv) {
-  int ret = 0;
+  int ret = 0, cookie_valid = FALSE;
   struct sigaction new_action, old_action;
 
   new_action.sa_handler = trap_handler;
@@ -360,8 +361,6 @@ int main(int argc, char **argv) {
     cleanup(ret);
   }
 
-
-  int cookie_valid = FALSE;
   /* Determine how we'll login -- either by cookie or credentials */
   if (config->cookies != NULL) { /* User specified cookie file */
     if (! file_exists(config->cookies)) {

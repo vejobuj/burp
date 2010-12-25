@@ -71,13 +71,12 @@ int curl_local_init() {
 }
 
 long aur_login(void) {
-  long ret, code;
+  long code, ret = 0;
   CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
   static struct write_result response;
 
-  ret = 0;
   post = last = NULL;
   headers = NULL;
   response.memory = NULL;
@@ -142,7 +141,13 @@ cleanup:
 }
 
 long aur_upload(const char *taurball) {
-  char *fullpath;
+  char *ptr, *fullpath;
+  char missing_var[10], category[3];
+  long httpcode, ret = 0;
+  CURLcode status;
+  struct curl_httppost *post, *last;
+  struct curl_slist *headers;
+  static struct write_result response;
 
   fullpath = realpath(taurball, NULL);
   if (fullpath == NULL) {
@@ -151,19 +156,11 @@ long aur_upload(const char *taurball) {
     return 1L;
   }
 
-  long ret, code;
-  CURLcode status;
-  struct curl_httppost *post, *last;
-  struct curl_slist *headers;
-  static struct write_result response;
-
-  ret = 0;
   post = last = NULL;
   headers = NULL;
   response.memory = NULL;
   response.size = 0;
 
-  char category[3];
   snprintf(category, 3, "%d", config->catnum);
 
   curl_formadd(&post, &last,
@@ -188,22 +185,19 @@ long aur_upload(const char *taurball) {
     printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
 
   status = curl_easy_perform(curl);
-  if (status != 0) {
+  if (status != CURLE_OK) {
     fprintf(stderr, "curl error: unable to send data to %s\n", AUR_SUBMIT_URL);
     fprintf(stderr, "%s\n", curl_easy_strerror(status));
     ret = status;
     goto cleanup;
   }
 
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-  if(code != 200) {
-    fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    ret = code;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
+  if(httpcode != 200) {
+    fprintf(stderr, "curl error: server responded with code %ld\n", httpcode);
+    ret = httpcode;
     goto cleanup;
   }
-
-  char missing_var[10];
-  char *ptr;
 
   if (config->verbose > 1) {
     printf("%s\n", response.memory);
