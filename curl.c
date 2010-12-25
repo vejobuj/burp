@@ -237,12 +237,7 @@ long aur_upload(const char *taurball) {
     fprintf(stderr, "Error: Package is missing %s variable\n", missing_var);
     ret = 1;
   } else {
-    char *basename;
-    if ((basename = strrchr(taurball, '/')) != NULL)
-      printf("%s ", basename + 1);
-    else
-      printf("%s ", taurball);
-    printf("has been uploaded successfully.\n");
+    printf("%s has been uploaded successfully.\n", basename(taurball));
   }
 
 cleanup:
