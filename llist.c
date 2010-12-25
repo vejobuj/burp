@@ -33,7 +33,7 @@ struct llist_t *llist_add(struct llist_t *list, void *data) {
 
   ptr = calloc(1, sizeof *list);
   if (ptr == NULL) {
-    return list;
+    return(list);
   }
 
   ptr->data = data;
@@ -41,14 +41,14 @@ struct llist_t *llist_add(struct llist_t *list, void *data) {
 
   if (list == NULL) {
     ptr->prev = ptr;
-    return ptr;
+    return(ptr);
   }
 
   list->prev->next = ptr;
   ptr->prev = list->prev;
   list->prev = ptr;
 
-  return list;
+  return(list);
 }
 
 void llist_free(struct llist_t *list, void (*fn)(void*)) {
@@ -56,8 +56,9 @@ void llist_free(struct llist_t *list, void (*fn)(void*)) {
 
   while (it) {
     struct llist_t *next = it->next;
-    if (fn && it->data)
+    if (fn && it->data) {
       fn(it->data);
+    }
     free(it);
     it = next;
   }

@@ -51,15 +51,17 @@ long cookie_expire_time(const char *cookie_file,
   while ((lptr = fgets(&line[0], COOKIE_SIZE, fd))) {
     strtrim(lptr);
 
-    if (*lptr == '#' || strlen(lptr) == 0)
+    if (*lptr == '#' || strlen(lptr) == 0) {
       continue;
+    }
 
     cookie = cookie_to_struct(lptr, &cookie);
 
     if (STREQ(domain, cookie->domain) && STREQ(name, cookie->name)) {
       expire = cookie->expire;
-      if (config->verbose > 1)
+      if (config->verbose > 1) {
         printf("::DEBUG:: Cookie found (expires %ld)\n", expire);
+      }
       break;
     }
   }
@@ -67,11 +69,11 @@ long cookie_expire_time(const char *cookie_file,
 
   free(cookie);
 
-  return expire;
+  return(expire);
 }
 
 int cookie_still_valid(long expire) {
-  return (time(NULL) < expire);
+  return(time(NULL) < expire);
 }
 
 cookie_t *cookie_to_struct(char *co, cookie_t **cookie) {
@@ -83,6 +85,6 @@ cookie_t *cookie_to_struct(char *co, cookie_t **cookie) {
   (*cookie)->name     = strtok(NULL, "\t");
   (*cookie)->value    = strtok(NULL, "\t");
 
-  return *cookie;
+  return(*cookie);
 }
 

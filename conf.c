@@ -39,12 +39,19 @@ config_t *config = NULL;
 void config_free(config_t *config) {
   if (config->user) {
     free(config->user);
-  if (config->password)
+  }
+
+  if (config->password) {
     free(config->password);
-  if (config->cookies)
+  }
+
+  if (config->cookies) {
     free(config->cookies);
-  if (config->category && STRNEQ(config->category, "None"))
+  }
+
+  if (config->category && STRNEQ(config->category, "None")) {
     free(config->category);
+  }
 
   free(config);
 }
@@ -57,6 +64,6 @@ config_t *config_new(void) {
   config->verbose = 0;
   config->catnum = 1;
 
-  return config;
+  return(config);
 }
 

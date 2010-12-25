@@ -40,10 +40,13 @@
 void delete_file(const char *filename) {
   struct stat st;
 
-  if (filename == NULL) return;
+  if (filename == NULL) {
+    return;
+  }
 
-  if (stat(filename, &st) == 0)
+  if (stat(filename, &st) == 0) {
     unlink(filename);
+  }
 }
 
 void die(const char *errstr, ...) {
@@ -58,7 +61,7 @@ void die(const char *errstr, ...) {
 int file_exists(const char *filename) {
   struct stat st;
 
-  return stat(filename, &st) == 0;
+  return(stat(filename, &st) == 0);
 }
 
 char *get_password(size_t maxlen) {
@@ -82,7 +85,7 @@ char *get_password(size_t maxlen) {
   t.c_lflag |= ECHO;
   tcsetattr(fileno(stdin), TCSANOW, &t);
 
-  return buf;
+  return(buf);
 }
 
 char *get_tmpfile(const char *format) {
@@ -90,7 +93,7 @@ char *get_tmpfile(const char *format) {
 
   asprintf(&buf, format, getpid());
 
-  return buf;
+  return(buf);
 }
 
 char *get_username(size_t maxlen) {
@@ -104,31 +107,37 @@ char *get_username(size_t maxlen) {
   fgets(buf, maxlen, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
-  return buf;
+  return(buf);
 }
 
 char *strtrim(char *str) {
   char *pch = str;
 
-  if (str == NULL || *str == '\0')
-    return str;
+  if (str == NULL || *str == '\0') {
+    return(str);
+  }
 
-  while (isspace(*pch)) pch++;
+  while (isspace(*pch)) {
+    pch++;
+  }
 
-  if (pch != str)
+  if (pch != str) {
     memmove(str, pch, (strlen(pch) + 1));
+  }
 
-  if (*str == '\0')
-    return str;
+  if (*str == '\0') {
+    return(str);
+  }
 
   pch = (str + strlen(str) - 1);
 
-  while (isspace(*pch))
+  while (isspace(*pch)) {
     pch--;
+  }
 
   *++pch = '\0';
 
-  return str;
+  return(str);
 }
 
 int touch(const char *filename) {
@@ -137,24 +146,29 @@ int touch(const char *filename) {
   fd = open(filename, O_WRONLY | O_CREAT | O_NONBLOCK | O_NOCTTY,
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-  if (fd == -1)
-    return 1;
+  if (fd == -1) {
+    return(1);
+  }
 
-  return close(fd);
+  return(close(fd));
 }
 
 void *xmalloc(size_t size) {
   void *ret = malloc(size);
-  if (!ret)
-    die("error: failed to allocate %zd bytes", size);
 
-  return ret;
+  if (!ret) {
+    die("error: failed to allocate %zd bytes", size);
+  }
+
+  return(ret);
 }
 
 void *xcalloc(size_t nmemb, size_t size) {
   void *ret = calloc(nmemb, size);
-  if (!ret)
-    die("error: failed to allocate %zd bytes", size);
 
-  return ret;
+  if (!ret) {
+    die("error: failed to allocate %zd bytes", size);
+  }
+
+  return(ret);
 }

@@ -32,10 +32,11 @@
 #include "curl.h"
 
 static void *myrealloc(void *ptr, size_t size) {
-  if (ptr)
-    return realloc(ptr, size);
-  else
-    return calloc(1, size);
+  if (ptr) {
+    return(realloc(ptr, size));
+  } else {
+    return(calloc(1, size));
+  }
 }
 
 static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
@@ -49,14 +50,15 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
     mem->memory[mem->size] = 0;
   }
 
-  return realsize;
+  return(realsize);
 }
 
 int curl_local_init() {
   curl = curl_easy_init();
 
-  if (! curl)
-    return 1;
+  if (! curl) {
+    return(1);
+  }
 
   if (config->verbose > 1) {
     printf("::DEBUG:: Initializing curl\n");
@@ -67,7 +69,7 @@ int curl_local_init() {
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
-  return 0;
+  return(0);
 }
 
 long aur_login(void) {
@@ -89,10 +91,11 @@ long aur_login(void) {
     CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
     CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
 
-  if (config->persist)
+  if (config->persist) {
     curl_formadd(&post, &last,
       CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
       CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
+  }
 
   headers = curl_slist_append(headers, "Expect:");
 
@@ -102,8 +105,9 @@ long aur_login(void) {
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
 
-  if (config->verbose > 0)
+  if (config->verbose > 0) {
     printf("Logging in to AUR as user %s\n", config->user);
+  }
 
   status = curl_easy_perform(curl);
   if(status != 0) {
@@ -137,7 +141,7 @@ cleanup:
   /* We're done using the password. Overwrite its memory */
   config->password = memset(config->password, 42, strlen(config->password));
 
-  return ret;
+  return(ret);
 }
 
 long aur_upload(const char *taurball) {
@@ -153,7 +157,7 @@ long aur_upload(const char *taurball) {
   if (fullpath == NULL) {
     fprintf(stderr, "Error uploading file '%s': ", taurball);
     perror("");
-    return 1L;
+    return(1L);
   }
 
   post = last = NULL;
@@ -181,8 +185,9 @@ long aur_upload(const char *taurball) {
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
 
-  if (config->verbose > 0)
+  if (config->verbose > 0) {
     printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
+  }
 
   status = curl_easy_perform(curl);
   if (status != CURLE_OK) {
@@ -240,6 +245,6 @@ cleanup:
   curl_slist_free_all(headers);
   curl_formfree(post);
 
-  return ret;
+  return(ret);
 }
 

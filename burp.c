@@ -63,7 +63,7 @@ static int fn_cmp_cat (const void *c1, const void *c2) {
   category_t *cat1 = (category_t*)c1;
   category_t *cat2 = (category_t*)c2;
 
-  return strcmp(cat1->name, cat2->name);
+  return(strcmp(cat1->name, cat2->name));
 }
 
 static int category_is_valid(const char *cat) {
@@ -73,7 +73,7 @@ static int category_is_valid(const char *cat) {
 
   res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
 
-  return res ? res->num : 0;
+  return(res ? res->num : 0);
 }
 
 static int read_config_file() {
@@ -83,27 +83,31 @@ static int read_config_file() {
   FILE *conf_fd = fopen(config_path, "r");
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
-  if (xdg_config_home)
+  if (xdg_config_home) {
     snprintf(&config_path[0], PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
-  else
+  } else {
     snprintf(&config_path[0], PATH_MAX, "%s/.config/burp/burp.conf",
       getenv("HOME"));
-
-  if (! file_exists(config_path)) {
-    if (config->verbose > 1)
-      printf("::DEBUG:: No config file found\n");
-    return ret;
   }
 
-  if (config->verbose > 1)
+  if (! file_exists(config_path)) {
+    if (config->verbose > 1) {
+      printf("::DEBUG:: No config file found\n");
+    }
+    return(ret);
+  }
+
+  if (config->verbose > 1) {
     printf("::DEBUG:: Found config file\n");
+  }
 
   while (fgets(line, BUFSIZ, conf_fd)) {
     char *key;
     strtrim(line);
 
-    if (line[0] == '#' || strlen(line) == 0)
+    if (line[0] == '#' || strlen(line) == 0) {
       continue;
+    }
 
     if ((ptr = strchr(line, '#'))) {
       *ptr = '\0';
@@ -117,14 +121,16 @@ static int read_config_file() {
     if (STREQ(key, "User")) {
       if (config->user == NULL) {
         config->user = strndup(ptr, AUR_USER_MAX);
-        if (config->verbose > 1)
+        if (config->verbose > 1) {
           printf("::DEBUG:: Using username: %s\n", config->user);
+        }
       }
     } else if (STREQ(key, "Password")) {
       if (config->password == NULL) {
         config->password = strndup(ptr, AUR_PASSWORD_MAX);
-        if (config->verbose > 1)
+        if (config->verbose > 1) {
           printf("::DEBUG:: Using password from config file.\n");
+        }
       }
     } else if (STREQ(key, "Cookies")) {
       if (config->cookies == NULL) {
@@ -132,8 +138,9 @@ static int read_config_file() {
         if (wordexp(ptr, &p, 0) == 0) {
           if (p.we_wordc == 1) {
             config->cookies = strdup(p.we_wordv[0]);
-            if (config->verbose >= 2)
+            if (config->verbose >= 2) {
               printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
+            }
           } else {
             fprintf(stderr, "Ambiguous path to cookie file. Ignoring config option.\n");
           }
@@ -155,7 +162,7 @@ static int read_config_file() {
 
   fclose(conf_fd);
 
-  return ret;
+  return(ret);
 }
 
 static void usage() {
@@ -185,8 +192,9 @@ static void usage_categories() {
   unsigned i;
 
   printf("Valid categories are:\n");
-  for (i = 0; i < NUM_CATEGORIES; i++)
+  for (i = 0; i < NUM_CATEGORIES; i++) {
     printf("\t%s\n", categories[i].name);
+  }
   putchar('\n');
 }
 
@@ -214,26 +222,30 @@ static int parseargs(int argc, char **argv) {
         usage();
         exit(0);
       case 'c':
-        if (config->category)
+        if (config->category) {
           FREE(config->category);
+        }
         config->category = strndup(optarg, 16);
         break;
       case 'C':
-        if (config->cookies)
+        if (config->cookies) {
           FREE(config->cookies);
+        }
         config->cookies = strndup(optarg, PATH_MAX);
         break;
       case 'k':
         config->persist = TRUE;
         break;
       case 'p':
-        if (config->password)
+        if (config->password) {
           FREE(config->password);
+        }
         config->password = strndup(optarg, AUR_PASSWORD_MAX);
         break;
       case 'u':
-        if (config->user)
+        if (config->user) {
           FREE(config->user);
+        }
         config->user = strndup(optarg, AUR_USER_MAX);
         break;
       case 'v':
@@ -241,25 +253,27 @@ static int parseargs(int argc, char **argv) {
         break;
 
       case '?':
-        return 1;
+        return(1);
       default:
-        return 1;
+        return(1);
     }
   }
 
   /* Feed the remaining args into a linked list */
-  while (optind < argc)
+  while (optind < argc) {
     targets = llist_add(targets, strdup(argv[optind++]));
+  }
 
-  return 0;
+  return(0);
 }
 
 static void cleanup(int ret) {
   llist_free(targets, free);
 
   if (config->cookies != NULL && ! config->persist) {
-    if (config->verbose > 1)
+    if (config->verbose > 1) {
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
+    }
 
     delete_file(config->cookies);
   }
@@ -272,7 +286,7 @@ static void cleanup(int ret) {
 static ssize_t xwrite(int fd, const void *buf, size_t count) {
   ssize_t ret;
   while ((ret = write(fd, buf, count)) == -1 && errno == EINTR);
-  return ret;
+  return(ret);
 }
 
 static void trap_handler(int signum) {
@@ -306,29 +320,35 @@ int main(int argc, char **argv) {
   new_action.sa_flags = 0;
 
   sigaction(SIGINT, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN)
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction(SIGINT, &new_action, NULL);
-  if (old_action.sa_handler != SIG_IGN)
+  }
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction(SIGTERM, &new_action, NULL);
-  if (old_action.sa_handler != SIG_IGN)
+  }
+  if (old_action.sa_handler != SIG_IGN) {
     sigaction(SIGSEGV, &new_action, NULL);
+  }
 
   config = config_new();
   targets = NULL;
 
   ret = parseargs(argc, argv);
-  if (ret != 0)
+  if (ret != 0) {
     cleanup(ret);
+  }
 
   /* Ensure we have a proper config environment */
-  if (config->category == NULL)
+  if (config->category == NULL) {
     config->category = "None";
-  else
+  } else {
     config->catnum = category_is_valid(config->category);
-    if (config->catnum == 0) {
-      usage_categories();
-      cleanup(ret);
-    }
+  }
+
+  if (config->catnum == 0) {
+    usage_categories();
+    cleanup(ret);
+  }
 
   if (targets == NULL) {
     usage();
@@ -340,8 +360,9 @@ int main(int argc, char **argv) {
    * Therefore, if ((user && pass) || cookie file) is supplied on the command
    * line, we won't read the config file.
    */
-  if (! (config->user || config->cookies))
+  if (! (config->user || config->cookies)) {
     read_config_file();
+  }
 
   if (config->verbose > 1) {
     printf("::DEBUG:: Runtime options:\n");
@@ -372,8 +393,9 @@ int main(int argc, char **argv) {
     } else { /* assume its a real cookie file and evaluate it */
       long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
-        if (cookie_still_valid(expire))
+        if (cookie_still_valid(expire)) {
           cookie_valid = TRUE;
+        }
         else
           fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
       }
@@ -386,11 +408,13 @@ int main(int argc, char **argv) {
   }
 
   if (! cookie_valid) {
-    if (config->verbose > 1)
+    if (config->verbose > 1) {
       fprintf(stderr, "::DEBUG:: cookie auth will fail. Falling back to user/pass\n");
+    }
 
-    if (config->user == NULL)
+    if (config->user == NULL) {
       config->user = get_username(AUR_USER_MAX);
+    }
 
     if (config->password == NULL) {
       printf("[%s] ", config->user);
@@ -409,14 +433,17 @@ int main(int argc, char **argv) {
       aur_upload((const char*)l->data);
   }
 
-  if (config->verbose > 1)
+  if (config->verbose > 1) {
     printf("::DEBUG:: Cleaning up curl handle\n");
-  if (curl)
+  }
+
+  if (curl) {
     curl_easy_cleanup(curl);
+  }
 
   curl_global_cleanup();
 
   cleanup(ret);
   /* never reached */
-  return 0;
+  return(0);
 }
