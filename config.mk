@@ -13,7 +13,7 @@ LIBS = -L/usr/lib -lc -lcurl
 
 # flags
 CPPFLAGS = -D_GNU_SOURCE -DVERSION=\"${VERSION}\"
-CFLAGS += -std=c99 -pedantic -Wall ${INCS} ${CPPFLAGS}
+CFLAGS += -std=c89 -pedantic -Wall -Wextra ${INCS} ${CPPFLAGS}
 LDFLAGS += ${LIBS}
 
 # compiler and linker
