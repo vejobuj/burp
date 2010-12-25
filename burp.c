@@ -45,12 +45,12 @@
 
 static struct llist_t *targets;
 
-struct category {
+typedef struct __category_t {
   const char *name;
   int num;
-};
+} category_t;
 
-static struct category categories[] = {
+static category_t categories[] = {
   { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
   { "emulators",    5 }, { "games",        6 }, { "gnome",        7 },
   { "i18n",         8 }, { "kde",          9 }, { "kernels",     19 },
@@ -60,18 +60,18 @@ static struct category categories[] = {
 };
 
 static int fn_cmp_cat (const void *c1, const void *c2) {
-  struct category *cat1 = (struct category*)c1;
-  struct category *cat2 = (struct category*)c2;
+  category_t *cat1 = (category_t*)c1;
+  category_t *cat2 = (category_t*)c2;
 
   return strcmp(cat1->name, cat2->name);
 }
 
 static int category_is_valid(const char *cat) {
-  struct category key, *res;
+  category_t key, *res;
 
   key.name = cat;
 
-  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category), fn_cmp_cat);
+  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
 
   return res ? res->num : 0;
 }

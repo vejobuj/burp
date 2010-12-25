@@ -40,7 +40,7 @@ long cookie_expire_time(const char *cookie_file,
   FILE *fd;
   char line[COOKIE_SIZE + 1];
   char *lptr;
-  struct cookie_t *cookie;
+  cookie_t *cookie;
   long expire;
 
   cookie = xcalloc(1, sizeof *cookie);
@@ -74,7 +74,7 @@ int cookie_still_valid(long expire) {
   return (time(NULL) < expire);
 }
 
-struct cookie_t *cookie_to_struct(char *co, struct cookie_t **cookie) {
+cookie_t *cookie_to_struct(char *co, cookie_t **cookie) {
   (*cookie)->domain   = strtok(co, "\t");
   (*cookie)->secure   = STREQ(strtok(NULL, "\t"), "TRUE") ? 1 : 0;
   (*cookie)->path     = strtok(NULL, "\t");

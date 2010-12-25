@@ -34,10 +34,10 @@
 #include "curl.h"
 #include "util.h"
 
-struct config_t *config = NULL;
+config_t *config = NULL;
 
-void config_free(struct config_t *config) {
-  if (config->user)
+void config_free(config_t *config) {
+  if (config->user) {
     free(config->user);
   if (config->password)
     free(config->password);
@@ -49,8 +49,8 @@ void config_free(struct config_t *config) {
   free(config);
 }
 
-struct config_t *config_new(void) {
-  struct config_t *config = xcalloc(1, sizeof *config);
+config_t *config_new(void) {
+  config_t *config = xcalloc(1, sizeof *config);
 
   config->user = config->password = config->cookies = config->category = NULL;
   config->persist = FALSE;

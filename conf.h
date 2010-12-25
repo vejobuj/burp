@@ -29,7 +29,7 @@
 
 #define COOKIEFILE_FORMAT  "/tmp/burp-%d.cookies"
 
-struct config_t {
+typedef struct __config_t {
   char *user;
   char *password;
   char *cookies;
@@ -37,11 +37,11 @@ struct config_t {
   int catnum;
   int persist;
   int verbose;
-};
+} config_t;
 
-struct config_t *config_new(void);
-void config_free(struct config_t*);
+config_t *config_new(void);
+void config_free(config_t*);
 
-extern struct config_t *config;
+extern config_t *config;
 
 #endif /* _BURP_CONF_H */

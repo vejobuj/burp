@@ -29,7 +29,7 @@
 
 #define COOKIE_SIZE   512
 
-struct cookie_t {
+typedef struct __cookie_t {
   char *domain;
   int secure;
   char *path;
@@ -37,9 +37,9 @@ struct cookie_t {
   long expire;
   char *name;
   char *value;
-};
+} cookie_t;
 
-struct cookie_t *cookie_to_struct(char*, struct cookie_t**);
+cookie_t *cookie_to_struct(char*, cookie_t**);
 int cookie_still_valid(long);
 long cookie_expire_time(const char*, const char*, const char*);
 
