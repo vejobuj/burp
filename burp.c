@@ -183,7 +183,7 @@ Usage: burp [options] PACKAGE [PACKAGE2..]\n\
 
 static void usage_categories() {
   printf("Valid categories are:\n");
-  int i;
+  unsigned i;
   for (i = 0; i < NUM_CATEGORIES; i++)
     printf("\t%s\n", categories[i].name);
   putchar('\n');
