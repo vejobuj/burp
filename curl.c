@@ -31,19 +31,11 @@
 #include "conf.h"
 #include "curl.h"
 
-static void *myrealloc(void *ptr, size_t size) {
-  if (ptr) {
-    return(realloc(ptr, size));
-  } else {
-    return(calloc(1, size));
-  }
-}
-
 static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
   struct write_result *mem = (struct write_result*)stream;
   size_t realsize = nmemb * size;
 
-  mem->memory = myrealloc(mem->memory, mem->size + realsize + 1);
+  mem->memory = realloc(mem->memory, mem->size + realsize + 1);
   if (mem->memory) {
     memcpy(&(mem->memory[mem->size]), ptr, realsize);
     mem->size += realsize;
