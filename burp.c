@@ -80,7 +80,7 @@ static int read_config_file() {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
-  FILE *conf_fd = fopen(config_path, "r");
+  FILE *conf_fd;
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home) {
@@ -96,6 +96,8 @@ static int read_config_file() {
     }
     return(ret);
   }
+
+  conf_fd = fopen(config_path, "r");
 
   if (config->verbose > 1) {
     printf("::DEBUG:: Found config file\n");
