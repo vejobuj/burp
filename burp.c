@@ -26,7 +26,7 @@
 
 #include <errno.h>
 #include <getopt.h>
-#include <linux/limits.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

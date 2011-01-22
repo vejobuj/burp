@@ -6,10 +6,12 @@ PREFIX = /usr
 MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
-CURLINC = /usr/include/curl
+LIBDIR = $(PREFIX)/lib
+INCDIR = $(PREFIX)/include
+CURLINC = $(INCDIR)/curl
 
-INCS = -I. -I/usr/include -I${CURLINC}
-LIBS = -L/usr/lib -lc -lcurl
+INCS = -I. -I$(INCDIR) -I${CURLINC}
+LIBS = -L$(LIBDIR) -lc -lcurl
 
 # flags
 CPPFLAGS = -D_GNU_SOURCE -DVERSION=\"${VERSION}\"

@@ -33,9 +33,15 @@
 #define AUR_USER_MAX            16
 #define AUR_PASSWORD_MAX        128
 
-#define AUR_URL_NO_PROTO        "aur.archlinux.org"
-#define AUR_LOGIN_URL           "https://aur.archlinux.org/"
-#define AUR_SUBMIT_URL          "https://aur.archlinux.org/pkgsubmit.php"
+#ifndef AUR_URL_NO_PROTO
+#  define AUR_URL_NO_PROTO        "aur.archlinux.org"
+#endif
+#ifndef AUR_LOGIN_URL
+#  define AUR_LOGIN_URL           "https://aur.archlinux.org/"
+#endif
+#ifndef AUR_SUBMIT_URL
+#  define AUR_SUBMIT_URL          "https://aur.archlinux.org/pkgsubmit.php"
+#endif
 
 #define AUR_COOKIE_NAME         "AURSID"
 
