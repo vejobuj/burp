@@ -59,11 +59,6 @@ void config_free(config_t *config) {
 config_t *config_new(void) {
   config_t *config = xcalloc(1, sizeof *config);
 
-  config->user = config->password = config->cookies = config->category = NULL;
-  config->persist = FALSE;
-  config->verbose = 0;
-  config->catnum = 1;
-
   return(config);
 }
 

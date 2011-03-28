@@ -73,7 +73,7 @@ static int category_is_valid(const char *cat) {
 
   res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
 
-  return(res ? res->num : 0);
+  return(res ? res->num : -1);
 }
 
 static int read_config_file(void) {
@@ -347,7 +347,7 @@ int main(int argc, char **argv) {
     config->catnum = category_is_valid(config->category);
   }
 
-  if (config->catnum == 0) {
+  if (config->catnum < 0) {
     usage_categories();
     cleanup(ret);
   }
