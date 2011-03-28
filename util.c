@@ -37,18 +37,6 @@
 
 #include "util.h"
 
-void delete_file(const char *filename) {
-  struct stat st;
-
-  if (filename == NULL) {
-    return;
-  }
-
-  if (stat(filename, &st) == 0) {
-    unlink(filename);
-  }
-}
-
 void die(const char *errstr, ...) {
   va_list ap;
 

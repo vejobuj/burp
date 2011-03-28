@@ -277,7 +277,7 @@ static void cleanup(int ret) {
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
     }
 
-    delete_file(config->cookies);
+    unlink(config->cookies);
   }
 
   config_free(config);

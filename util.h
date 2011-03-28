@@ -34,7 +34,6 @@
 #define STREQ(x,y) strcmp(x,y) == 0
 #define STRNEQ(x,y) strcmp(x,y) != 0
 
-void delete_file(const char*);
 void die(const char*, ...);
 int file_exists(const char*);
 char *get_password(size_t);
