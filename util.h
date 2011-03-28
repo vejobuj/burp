@@ -30,9 +30,8 @@
 #define TRUE 1
 #define FALSE 0
 
-#define FREE(x) do { free(x); x = NULL; } while (0)
+#define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)
 #define STREQ(x,y) strcmp(x,y) == 0
-#define STRNEQ(x,y) strcmp(x,y) != 0
 
 void die(const char*, ...);
 int file_exists(const char*);

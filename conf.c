@@ -49,7 +49,7 @@ void config_free(config_t *config) {
     free(config->cookies);
   }
 
-  if (config->category && STRNEQ(config->category, "None")) {
+  if (config->category && !STREQ(config->category, "None")) {
     free(config->category);
   }
 
