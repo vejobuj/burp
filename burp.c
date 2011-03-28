@@ -76,7 +76,7 @@ static int category_is_valid(const char *cat) {
   return(res ? res->num : 0);
 }
 
-static int read_config_file() {
+static int read_config_file(void) {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
@@ -167,7 +167,7 @@ static int read_config_file() {
   return(ret);
 }
 
-static void usage() {
+static void usage(void) {
   fprintf(stderr, "burp %s\n"
   "Usage: burp [options] targets...\n\n"
   " Options:\n"
@@ -190,7 +190,7 @@ static void usage() {
   "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
-static void usage_categories() {
+static void usage_categories(void) {
   unsigned i;
 
   printf("Valid categories are:\n");
