@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 #include "conf.h"
 #include "curl.h"
@@ -144,11 +145,23 @@ long aur_upload(const char *taurball) {
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
   static struct write_result response;
+  struct stat st;
 
   fullpath = realpath(taurball, NULL);
   if (fullpath == NULL) {
     fprintf(stderr, "Error uploading file '%s': ", taurball);
     perror("");
+    return(1L);
+  }
+
+  /* make sure the resolved path is a regular file */
+  if (stat(fullpath, &st) != 0) {
+    perror("stat");
+    return(1L);
+  }
+
+  if (!S_ISREG(st.st_mode)) {
+    fprintf(stderr, "skipping target `%s\': not a file\n", taurball);
     return(1L);
   }
 
