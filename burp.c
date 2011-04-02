@@ -72,7 +72,6 @@ static long cookie_expire_time(const char *cookie_file,
   }
 
   for (;;) {
-    int k;
     char l[COOKIE_SIZE];
 
     cdomain[0] = cname[0] = '\0';
@@ -88,8 +87,7 @@ static long cookie_expire_time(const char *cookie_file,
       continue;
     }
 
-    if ((k = sscanf(l, "%s\t%*s\t%*s\t%*s\t%ld\t%s\t%*s",
-            cdomain, &expire, cname)) != 3) {
+    if (sscanf(l, "%s\t%*s\t%*s\t%*s\t%ld\t%s\t%*s", cdomain, &expire, cname) != 3) {
       continue;
     }
 
