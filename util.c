@@ -46,12 +46,6 @@ void die(const char *errstr, ...) {
   exit(EXIT_FAILURE);
 }
 
-int file_exists(const char *filename) {
-  struct stat st;
-
-  return(stat(filename, &st) == 0);
-}
-
 char *get_password(size_t maxlen) {
   struct termios t;
   char *buf;

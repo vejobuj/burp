@@ -34,7 +34,6 @@
 #define STREQ(x,y) strcmp(x,y) == 0
 
 void die(const char*, ...);
-int file_exists(const char*);
 char *get_password(size_t);
 char *get_tmpfile(const char*);
 char *get_username(size_t);

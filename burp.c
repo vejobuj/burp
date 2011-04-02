@@ -137,9 +137,9 @@ static int read_config_file(void) {
       getenv("HOME"));
   }
 
-  if (! file_exists(config_path)) {
+  if (! access(config_path, R_OK) == 0) {
     if (config->verbose > 1) {
-      printf("::DEBUG:: No config file found\n");
+      printf("::DEBUG:: No config file found or not readable\n");
     }
     return(ret);
   }
@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
 
   /* Determine how we'll login -- either by cookie or credentials */
   if (config->cookies != NULL) { /* User specified cookie file */
-    if (! file_exists(config->cookies)) {
+    if (! access(config->cookies, R_OK) == 0) {
       if (touch(config->cookies) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
         perror(config->cookies);
