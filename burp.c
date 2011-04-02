@@ -36,12 +36,12 @@
 #include <wordexp.h>
 
 #include "conf.h"
-#include "cookies.h"
 #include "curl.h"
 #include "llist.h"
 #include "util.h"
 
 #define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
+#define COOKIE_SIZE 1024
 
 static struct llist_t *targets;
 
@@ -58,6 +58,53 @@ static category_t categories[] = {
   { "network",     13 }, { "office",      14 }, { "science",     15 },
   { "system",      16 }, { "x11",         17 }, { "xfce",        18 }
 };
+
+static long cookie_expire_time(const char *cookie_file,
+                               const char *domain,
+                               const char *name) {
+  FILE *fp;
+  long expire;
+  char cdomain[256], cname[256];
+
+  fp = fopen(cookie_file, "r");
+  if (!fp) {
+    return 0L;
+  }
+
+  for (;;) {
+    int k;
+    char l[COOKIE_SIZE];
+
+    cdomain[0] = cname[0] = '\0';
+    expire = 0L;
+
+    if(!(fgets(l, sizeof(l), fp))) {
+      break;
+    }
+
+    strtrim(l);
+
+    if (*l == '#' || strlen(l) == 0) {
+      continue;
+    }
+
+    if ((k = sscanf(l, "%s\t%*s\t%*s\t%*s\t%ld\t%s\t%*s",
+            cdomain, &expire, cname)) != 3) {
+      continue;
+    }
+
+    if (STREQ(domain, cdomain) && STREQ(name, cname)) {
+      if (config->verbose > 1) {
+        printf("::DEBUG:: Cookie found (expires %ld)\n", expire);
+      }
+      break;
+    }
+  }
+
+  fclose(fp);
+
+  return(expire);
+}
 
 static int fn_cmp_cat (const void *c1, const void *c2) {
   category_t *cat1 = (category_t*)c1;
@@ -395,7 +442,7 @@ int main(int argc, char **argv) {
     } else { /* assume its a real cookie file and evaluate it */
       long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
-        if (cookie_still_valid(expire)) {
+        if (time(NULL) < expire) {
           cookie_valid = TRUE;
         }
         else
