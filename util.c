@@ -37,26 +37,30 @@
 
 #include "util.h"
 
-char *get_password(size_t maxlen) {
+char *read_stdin(const char *prompt, size_t maxlen, int echo) {
   struct termios t;
   char *buf;
 
   CALLOC(buf, 1, ++maxlen, return NULL);
 
-  printf("Enter password: ");
+  printf("%s: ", prompt);
 
-  /* turn off the echo flag */
-  tcgetattr(fileno(stdin), &t);
-  t.c_lflag &= ~ECHO;
-  tcsetattr(fileno(stdin), TCSANOW, &t);
+  if (!echo) {
+    /* turn off the echo flag */
+    tcgetattr(fileno(stdin), &t);
+    t.c_lflag &= ~ECHO;
+    tcsetattr(fileno(stdin), TCSANOW, &t);
+  }
 
   /* fgets() will leave a newline char on the end */
   fgets(buf, maxlen, stdin);
   *(buf + strlen(buf) - 1) = '\0';
-
   putchar('\n');
-  t.c_lflag |= ECHO;
-  tcsetattr(fileno(stdin), TCSANOW, &t);
+
+  if (!echo) {
+    t.c_lflag |= ECHO;
+    tcsetattr(fileno(stdin), TCSANOW, &t);
+  }
 
   return buf;
 }
@@ -65,20 +69,6 @@ char *get_tmpfile(const char *format) {
   char *buf;
 
   asprintf(&buf, format, getpid());
-
-  return buf;
-}
-
-char *get_username(size_t maxlen) {
-  char *buf;
-
-  CALLOC(buf, 1, ++maxlen, return NULL);
-
-  printf("Enter username: ");
-
-  /* fgets() will leave a newline char on the end */
-  fgets(buf, maxlen, stdin);
-  *(buf + strlen(buf) - 1) = '\0';
 
   return buf;
 }

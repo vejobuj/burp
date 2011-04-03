@@ -418,12 +418,12 @@ int main(int argc, char **argv) {
     }
 
     if (config->user == NULL) {
-      config->user = get_username(AUR_USER_MAX);
+      config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
     }
 
     if (config->password == NULL) {
       printf("[%s] ", config->user);
-      config->password = get_password(AUR_PASSWORD_MAX);
+      config->password = read_stdin("Enter password", AUR_PASSWORD_MAX, 0);
     }
   }
 

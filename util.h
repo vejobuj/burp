@@ -37,9 +37,8 @@
 #define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)
 #define STREQ(x,y) strcmp(x,y) == 0
 
-char *get_password(size_t);
+char *read_stdin(const char*, size_t, int);
 char *get_tmpfile(const char*);
-char *get_username(size_t);
 char *strtrim(char*);
 int touch(const char*);
 
