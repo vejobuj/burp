@@ -329,52 +329,8 @@ static void cleanup(int ret) {
   exit(ret);
 }
 
-static ssize_t xwrite(int fd, const void *buf, size_t count) {
-  ssize_t ret;
-  while ((ret = write(fd, buf, count)) == -1 && errno == EINTR);
-  return(ret);
-}
-
-static void trap_handler(int signum) {
-  int err = fileno(stderr);
-
-  if (signum == SIGSEGV) {
-    const char *msg = "An internal error occurred. Please submit a full bug "
-                      "report with a backtrace if possible.\n";
-    xwrite(err, msg, strlen(msg));
-    exit(signum);
-  } else if (signum == SIGINT) {
-    struct termios t;
-    const char *msg = "\nCaught user interrupt\n";
-
-    tcgetattr(fileno(stdin), &t);
-    t.c_lflag |= ECHO;
-    tcsetattr(fileno(stdin), TCSANOW, &t);
-
-    xwrite(err, msg, strlen(msg));
-  }
-
-  cleanup(signum);
-}
-
 int main(int argc, char **argv) {
   int ret = 0, cookie_valid = FALSE;
-  struct sigaction new_action, old_action;
-
-  new_action.sa_handler = trap_handler;
-  sigemptyset(&new_action.sa_mask);
-  new_action.sa_flags = 0;
-
-  sigaction(SIGINT, NULL, &old_action);
-  if (old_action.sa_handler != SIG_IGN) {
-    sigaction(SIGINT, &new_action, NULL);
-  }
-  if (old_action.sa_handler != SIG_IGN) {
-    sigaction(SIGTERM, &new_action, NULL);
-  }
-  if (old_action.sa_handler != SIG_IGN) {
-    sigaction(SIGSEGV, &new_action, NULL);
-  }
 
   config = config_new();
   targets = NULL;
