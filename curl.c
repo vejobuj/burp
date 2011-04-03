@@ -49,7 +49,7 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
 int curl_local_init() {
   curl = curl_easy_init();
 
-  if (! curl) {
+  if (!curl) {
     return 1;
   }
 

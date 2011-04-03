@@ -58,12 +58,6 @@ typedef struct __category_t {
   int num;
 } category_t;
 
-/* package stack */
-struct {
-  char *stack[TARGETMAX];
-  int idx;
-} targets;
-
 static category_t categories[] = {
   { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
   { "emulators",    5 }, { "games",        6 }, { "gnome",        7 },
@@ -196,15 +190,6 @@ int parseargs(int argc, char **argv) {
     }
   }
 
-  /* push remaining targets onto stack */
-  while (optind < argc) {
-    if (targets.idx >= TARGETMAX) {
-      fprintf(stderr, "error: stack overflow detected! a maximum of 32 packages are allowed\n");
-      return 1;
-    }
-    targets.stack[targets.idx++] = argv[optind++];
-  }
-
   return 0;
 }
 
@@ -222,7 +207,7 @@ int read_config_file() {
       getenv("HOME"));
   }
 
-  if (! access(config_path, R_OK) == 0) {
+  if (!access(config_path, R_OK) == 0) {
     if (config->verbose > 1) {
       printf("::DEBUG:: No config file found or not readable\n");
     }
@@ -336,7 +321,6 @@ int main(int argc, char **argv) {
   int ret = 0, cookie_valid = FALSE;
 
   config = config_new();
-  targets.idx = 0;
 
   ret = parseargs(argc, argv);
   if (ret != 0) {
@@ -355,8 +339,8 @@ int main(int argc, char **argv) {
     goto finish;
   }
 
-  if (targets.idx == 0) {
-    usage();
+  if (optind == argc) {
+    fprintf(stderr, "error: no packages specified (use -h for help)");
     goto finish;
   }
 
@@ -365,7 +349,7 @@ int main(int argc, char **argv) {
    * Therefore, if ((user && pass) || cookie file) is supplied on the command
    * line, we won't read the config file.
    */
-  if (! (config->user || config->cookies)) {
+  if (!(config->user || config->cookies)) {
     read_config_file();
   }
 
@@ -380,7 +364,7 @@ int main(int argc, char **argv) {
   }
 
   /* Quick sanity check */
-  if (config->persist && ! config->cookies) {
+  if (config->persist && !config->cookies) {
     fprintf(stderr, "%s: Error parsing options: do not specify persistent "
                     "cookies without providing a path to the cookie file.\n",
                     argv[0]);
@@ -389,7 +373,7 @@ int main(int argc, char **argv) {
 
   /* Determine how we'll login -- either by cookie or credentials */
   if (config->cookies != NULL) { /* User specified cookie file */
-    if (! access(config->cookies, R_OK) == 0) {
+    if (!access(config->cookies, R_OK) == 0) {
       if (touch(config->cookies) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
         perror(config->cookies);
@@ -412,7 +396,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (! cookie_valid) {
+  if (!cookie_valid) {
     if (config->verbose > 1) {
       fprintf(stderr, "::DEBUG:: cookie auth will fail. Falling back to user/pass\n");
     }
@@ -433,9 +417,8 @@ int main(int argc, char **argv) {
   }
 
   if (cookie_valid || aur_login() == 0) {
-    int i;
-    for (i = 0; i < targets.idx; i++) {
-      aur_upload(targets.stack[i]);
+    while (optind < argc) {
+      aur_upload(argv[optind++]);
     }
   }
 
@@ -449,7 +432,7 @@ int main(int argc, char **argv) {
   curl_global_cleanup();
 
 finish:
-  if (config->cookies != NULL && ! config->persist) {
+  if (config->cookies != NULL && !config->persist) {
     if (config->verbose > 1) {
       printf("::DEBUG:: Deleting file %s\n", config->cookies);
     }
