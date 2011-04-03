@@ -100,14 +100,14 @@ static long cookie_expire_time(const char *cookie_file,
 
   fclose(fp);
 
-  return(expire);
+  return expire;
 }
 
 static int fn_cmp_cat (const void *c1, const void *c2) {
   category_t *cat1 = (category_t*)c1;
   category_t *cat2 = (category_t*)c2;
 
-  return(strcmp(cat1->name, cat2->name));
+  return strcmp(cat1->name, cat2->name);
 }
 
 static int category_is_valid(const char *cat) {
@@ -117,7 +117,7 @@ static int category_is_valid(const char *cat) {
 
   res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
 
-  return(res ? res->num : -1);
+  return res ? res->num : -1;
 }
 
 static int read_config_file(void) {
@@ -138,7 +138,7 @@ static int read_config_file(void) {
     if (config->verbose > 1) {
       printf("::DEBUG:: No config file found or not readable\n");
     }
-    return(ret);
+    return ret;
   }
 
   conf_fd = fopen(config_path, "r");
@@ -208,7 +208,7 @@ static int read_config_file(void) {
 
   fclose(conf_fd);
 
-  return(ret);
+  return ret;
 }
 
 static void usage(void) {
@@ -299,9 +299,9 @@ static int parseargs(int argc, char **argv) {
         break;
 
       case '?':
-        return(1);
+        return 1;
       default:
-        return(1);
+        return 1;
     }
   }
 
@@ -310,7 +310,7 @@ static int parseargs(int argc, char **argv) {
     targets = llist_add(targets, strdup(argv[optind++]));
   }
 
-  return(0);
+  return 0;
 }
 
 int main(int argc, char **argv) {
@@ -440,5 +440,5 @@ finish:
 
   config_free(config);
 
-  return(ret);
+  return ret;
 }

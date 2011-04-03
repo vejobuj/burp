@@ -67,7 +67,7 @@ char *get_password(size_t maxlen) {
   t.c_lflag |= ECHO;
   tcsetattr(fileno(stdin), TCSANOW, &t);
 
-  return(buf);
+  return buf;
 }
 
 char *get_tmpfile(const char *format) {
@@ -75,7 +75,7 @@ char *get_tmpfile(const char *format) {
 
   asprintf(&buf, format, getpid());
 
-  return(buf);
+  return buf;
 }
 
 char *get_username(size_t maxlen) {
@@ -89,14 +89,14 @@ char *get_username(size_t maxlen) {
   fgets(buf, maxlen, stdin);
   *(buf + strlen(buf) - 1) = '\0';
 
-  return(buf);
+  return buf;
 }
 
 char *strtrim(char *str) {
   char *pch = str;
 
   if (str == NULL || *str == '\0') {
-    return(str);
+    return str;
   }
 
   while (isspace(*pch)) {
@@ -108,7 +108,7 @@ char *strtrim(char *str) {
   }
 
   if (*str == '\0') {
-    return(str);
+    return str;
   }
 
   pch = (str + strlen(str) - 1);
@@ -119,7 +119,7 @@ char *strtrim(char *str) {
 
   *++pch = '\0';
 
-  return(str);
+  return str;
 }
 
 int touch(const char *filename) {
@@ -129,10 +129,10 @@ int touch(const char *filename) {
             S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
   if (fd == -1) {
-    return(1);
+    return 1;
   }
 
-  return(close(fd));
+  return close(fd);
 }
 
 void *xmalloc(size_t size) {
@@ -142,7 +142,7 @@ void *xmalloc(size_t size) {
     die("error: failed to allocate %zd bytes", size);
   }
 
-  return(ret);
+  return ret;
 }
 
 void *xcalloc(size_t nmemb, size_t size) {
@@ -152,5 +152,5 @@ void *xcalloc(size_t nmemb, size_t size) {
     die("error: failed to allocate %zd bytes", size);
   }
 
-  return(ret);
+  return ret;
 }

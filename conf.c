@@ -54,6 +54,6 @@ void config_free(config_t *config) {
 config_t *config_new(void) {
   config_t *config = xcalloc(1, sizeof *config);
 
-  return(config);
+  return config;
 }
 

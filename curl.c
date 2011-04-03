@@ -43,14 +43,14 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
     mem->memory[mem->size] = 0;
   }
 
-  return(realsize);
+  return realsize;
 }
 
 int curl_local_init() {
   curl = curl_easy_init();
 
   if (! curl) {
-    return(1);
+    return 1;
   }
 
   if (config->verbose > 1) {
@@ -62,7 +62,7 @@ int curl_local_init() {
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
-  return(0);
+  return 0;
 }
 
 long aur_login(void) {
@@ -134,7 +134,7 @@ cleanup:
   /* We're done using the password. Overwrite its memory */
   config->password = memset(config->password, 42, strlen(config->password));
 
-  return(ret);
+  return ret;
 }
 
 long aur_upload(const char *taurball) {
@@ -151,18 +151,18 @@ long aur_upload(const char *taurball) {
   if (fullpath == NULL) {
     fprintf(stderr, "Error uploading file '%s': ", taurball);
     perror("");
-    return(1L);
+    return 1L;
   }
 
   /* make sure the resolved path is a regular file */
   if (stat(fullpath, &st) != 0) {
     perror("stat");
-    return(1L);
+    return 1L;
   }
 
   if (!S_ISREG(st.st_mode)) {
     fprintf(stderr, "skipping target `%s\': not a file\n", taurball);
-    return(1L);
+    return 1L;
   }
 
   post = last = NULL;
@@ -250,6 +250,6 @@ cleanup:
   curl_slist_free_all(headers);
   curl_formfree(post);
 
-  return(ret);
+  return ret;
 }
 
