@@ -52,16 +52,16 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
     tcsetattr(fileno(stdin), TCSANOW, &t);
   }
 
-  /* fgets() will leave a newline char on the end */
   if (!fgets(buf, maxlen, stdin)) {
     fprintf(stderr, "failed to read from stdin\n");
     return NULL;
   }
 
+  /* fgets() will leave a newline char on the end */
   *(buf + strlen(buf) - 1) = '\0';
-  putchar('\n');
 
   if (!echo) {
+    putchar('\n');
     t.c_lflag |= ECHO;
     tcsetattr(fileno(stdin), TCSANOW, &t);
   }
