@@ -24,14 +24,9 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 
 #include "conf.h"
-#include "curl.h"
 #include "util.h"
 
 config_t *config = NULL;
