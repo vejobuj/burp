@@ -313,22 +313,6 @@ static int parseargs(int argc, char **argv) {
   return(0);
 }
 
-static void cleanup(int ret) {
-  llist_free(targets, free);
-
-  if (config->cookies != NULL && ! config->persist) {
-    if (config->verbose > 1) {
-      printf("::DEBUG:: Deleting file %s\n", config->cookies);
-    }
-
-    unlink(config->cookies);
-  }
-
-  config_free(config);
-
-  exit(ret);
-}
-
 int main(int argc, char **argv) {
   int ret = 0, cookie_valid = FALSE;
 
@@ -337,7 +321,7 @@ int main(int argc, char **argv) {
 
   ret = parseargs(argc, argv);
   if (ret != 0) {
-    cleanup(ret);
+    goto finish;
   }
 
   /* Ensure we have a proper config environment */
@@ -349,12 +333,12 @@ int main(int argc, char **argv) {
 
   if (config->catnum < 0) {
     usage_categories();
-    cleanup(ret);
+    goto finish;
   }
 
   if (targets == NULL) {
     usage();
-    cleanup(ret);
+    goto finish;
   }
 
   /* We can't read the config file without having verbosity set, but the
@@ -381,7 +365,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "%s: Error parsing options: do not specify persistent "
                     "cookies without providing a path to the cookie file.\n",
                     argv[0]);
-    cleanup(ret);
+    goto finish;
   }
 
   /* Determine how we'll login -- either by cookie or credentials */
@@ -390,22 +374,22 @@ int main(int argc, char **argv) {
       if (touch(config->cookies) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
         perror(config->cookies);
-        cleanup(ret);
+        goto finish;
       }
     } else { /* assume its a real cookie file and evaluate it */
       long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
         if (time(NULL) < expire) {
           cookie_valid = TRUE;
-        }
-        else
+        } else {
           fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
+        }
       }
     }
   } else { /* create PID based file in /tmp */
     if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
       fprintf(stderr, "error creating cookie file.\n");
-      cleanup(ret);
+      goto finish;
     }
   }
 
@@ -426,7 +410,7 @@ int main(int argc, char **argv) {
 
   if (curl_global_init(CURL_GLOBAL_SSL) != 0 || curl_local_init() != 0) {
     fprintf(stderr, "Error: An error occurred while initializing curl\n");
-    cleanup(ret);
+    goto finish;
   }
 
   if (cookie_valid || aur_login() == 0) {
@@ -442,10 +426,19 @@ int main(int argc, char **argv) {
   if (curl) {
     curl_easy_cleanup(curl);
   }
-
   curl_global_cleanup();
 
-  cleanup(ret);
-  /* never reached */
-  return(0);
+finish:
+  llist_free(targets, free);
+
+  if (config->cookies != NULL && ! config->persist) {
+    if (config->verbose > 1) {
+      printf("::DEBUG:: Deleting file %s\n", config->cookies);
+    }
+    unlink(config->cookies);
+  }
+
+  config_free(config);
+
+  return(ret);
 }
