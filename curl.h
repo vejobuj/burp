@@ -67,11 +67,9 @@ struct write_result {
   size_t size;
 };
 
-int curl_local_init(void);
+int curl_init(void);
+void curl_cleanup(void);
 long aur_login(void);
 long aur_upload(const char*);
-
-CURL *curl;
-extern CURL *curl;
 
 #endif /* _BURP_CURL_H */

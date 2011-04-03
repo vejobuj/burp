@@ -32,6 +32,8 @@
 #include "conf.h"
 #include "curl.h"
 
+static CURL *curl;
+
 static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
   struct write_result *mem = (struct write_result*)stream;
   size_t realsize = nmemb * size;
@@ -46,10 +48,12 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
   return realsize;
 }
 
-int curl_local_init() {
-  curl = curl_easy_init();
+int curl_init() {
+  if (!curl_global_init(CURL_GLOBAL_SSL)) {
+    return 1;
+  }
 
-  if (!curl) {
+  if (!(curl = curl_easy_init())) {
     return 1;
   }
 
@@ -64,6 +68,11 @@ int curl_local_init() {
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
   return 0;
+}
+
+void curl_cleanup() {
+  curl_easy_cleanup(curl);
+  curl_global_cleanup();
 }
 
 long aur_login(void) {

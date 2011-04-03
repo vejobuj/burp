@@ -411,7 +411,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (curl_global_init(CURL_GLOBAL_SSL) != 0 || curl_local_init() != 0) {
+  if (curl_init() != 0) {
     fprintf(stderr, "Error: An error occurred while initializing curl\n");
     goto finish;
   }
@@ -426,10 +426,7 @@ int main(int argc, char **argv) {
     printf("::DEBUG:: Cleaning up curl handle\n");
   }
 
-  if (curl) {
-    curl_easy_cleanup(curl);
-  }
-  curl_global_cleanup();
+  curl_cleanup();
 
 finish:
   if (config->cookies != NULL && !config->persist) {
@@ -443,3 +440,4 @@ finish:
 
   return ret;
 }
+
