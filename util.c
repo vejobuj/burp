@@ -50,7 +50,7 @@ char *get_password(size_t maxlen) {
   struct termios t;
   char *buf;
 
-  buf = xcalloc(1, ++maxlen);
+  CALLOC(buf, 1, ++maxlen, return NULL);
 
   printf("Enter password: ");
 
@@ -81,7 +81,7 @@ char *get_tmpfile(const char *format) {
 char *get_username(size_t maxlen) {
   char *buf;
 
-  buf = xcalloc(1, ++maxlen);
+  CALLOC(buf, 1, ++maxlen, return NULL);
 
   printf("Enter username: ");
 
@@ -135,22 +135,3 @@ int touch(const char *filename) {
   return close(fd);
 }
 
-void *xmalloc(size_t size) {
-  void *ret = malloc(size);
-
-  if (!ret) {
-    die("error: failed to allocate %zd bytes", size);
-  }
-
-  return ret;
-}
-
-void *xcalloc(size_t nmemb, size_t size) {
-  void *ret = calloc(nmemb, size);
-
-  if (!ret) {
-    die("error: failed to allocate %zd bytes", size);
-  }
-
-  return ret;
-}

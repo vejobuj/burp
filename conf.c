@@ -24,6 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "conf.h"
@@ -52,7 +53,9 @@ void config_free(config_t *config) {
 }
 
 config_t *config_new(void) {
-  config_t *config = xcalloc(1, sizeof *config);
+  config_t *config;
+
+  CALLOC(config, 1, sizeof *config, return NULL);
 
   return config;
 }

@@ -32,6 +32,8 @@
 #define TRUE 1
 #define FALSE 0
 
+#define ALLOC_FAIL(s) do { fprintf(stderr, "could not allocate %lu bytes\n", s); } while(0)
+#define CALLOC(p, l, s, action) do { p = calloc(l, s); if(!p) { ALLOC_FAIL(s); action; } } while(0)
 #define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)
 #define STREQ(x,y) strcmp(x,y) == 0
 
@@ -41,7 +43,5 @@ char *get_tmpfile(const char*);
 char *get_username(size_t);
 char *strtrim(char*);
 int touch(const char*);
-void *xcalloc(size_t, size_t);
-void *xmalloc(size_t);
 
 #endif /* _BURP_UTIL_H */
