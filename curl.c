@@ -60,60 +60,54 @@ int curl_local_init() {
 
   curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
+  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
   return 0;
 }
 
 long aur_login(void) {
-  long code, ret = 0;
+  long httpcode, ret = 0;
   CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
-  static struct write_result response;
+  struct write_result response = { NULL, 0 };
 
   post = last = NULL;
-  headers = NULL;
-  response.memory = NULL;
-  response.size = 0;
-
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, AUR_LOGIN_FIELD,
-    CURLFORM_COPYCONTENTS, config->user, CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
-    CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_LOGIN_FIELD,
+      CURLFORM_COPYCONTENTS, config->user, CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
+      CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
 
   if (config->persist) {
-    curl_formadd(&post, &last,
-      CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
-      CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
+        CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
   }
 
+  headers = NULL;
   headers = curl_slist_append(headers, "Expect:");
 
-  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
+  curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+  curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
+  curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
 
   if (config->verbose > 0) {
     printf("Logging in to AUR as user %s\n", config->user);
   }
 
   status = curl_easy_perform(curl);
-  if(status != 0) {
-    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_LOGIN_URL);
-    fprintf(stderr, "%s\n", curl_easy_strerror(status));
+  if (status != CURLE_OK) {
+    fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL,
+        curl_easy_strerror(status));
     ret = status;
     goto cleanup;
   }
 
-  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-  if(code != 200) {
-    fprintf(stderr, "curl error: server responded with code %ld\n", code);
-    ret = code;
+  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
+  if (httpcode != 200) {
+    fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
+    ret = httpcode;
     goto cleanup;
   }
 
@@ -144,7 +138,7 @@ long aur_upload(const char *taurball) {
   CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
-  static struct write_result response;
+  struct write_result response = { NULL, 0 };
   struct stat st;
 
   fullpath = realpath(taurball, NULL);
@@ -165,30 +159,23 @@ long aur_upload(const char *taurball) {
     return 1L;
   }
 
-  post = last = NULL;
-  headers = NULL;
-  response.memory = NULL;
-  response.size = 0;
-
   snprintf(category, 3, "%d", config->catnum);
 
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "pkgsubmit",
-    CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "category",
-    CURLFORM_COPYCONTENTS, category, CURLFORM_END);
-  curl_formadd(&post, &last,
-    CURLFORM_COPYNAME, "pfile",
-    CURLFORM_FILE, fullpath, CURLFORM_END);
+  post = last = NULL;
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, "pkgsubmit",
+      CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, "category",
+      CURLFORM_COPYCONTENTS, category, CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, "pfile", 
+      CURLFORM_FILE, fullpath, CURLFORM_END);
 
+  headers = NULL;
   headers = curl_slist_append(headers, "Expect:");
 
+  curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
-  curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-  curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
 
   if (config->verbose > 0) {
     printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
@@ -196,15 +183,15 @@ long aur_upload(const char *taurball) {
 
   status = curl_easy_perform(curl);
   if (status != CURLE_OK) {
-    fprintf(stderr, "curl error: unable to send data to %s\n", AUR_SUBMIT_URL);
-    fprintf(stderr, "%s\n", curl_easy_strerror(status));
+    fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL,
+        curl_easy_strerror(status));
     ret = status;
     goto cleanup;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
   if(httpcode != 200) {
-    fprintf(stderr, "curl error: server responded with code %ld\n", httpcode);
+    fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
     ret = httpcode;
     goto cleanup;
   }
