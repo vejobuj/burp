@@ -30,6 +30,9 @@ dist: clean
 clean:
 	${RM} *.o burp burp.1
 
+strip: burp
+	strip --strip-all $<
+
 install: burp doc
 	install -Dm755 burp ${DESTDIR}${PREFIX}/bin/burp
 	install -Dm644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
