@@ -36,11 +36,11 @@
 
 #include "conf.h"
 #include "curl.h"
-#include "llist.h"
 #include "util.h"
 
 #define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
 #define COOKIE_SIZE 1024
+#define TARGETMAX 32
 
 /* forward decls */
 static int category_is_valid(const char*);
@@ -58,8 +58,11 @@ typedef struct __category_t {
   int num;
 } category_t;
 
-/* global data */
-static struct llist_t *targets;
+/* package stack */
+struct {
+  char *stack[TARGETMAX];
+  int idx;
+} targets;
 
 static category_t categories[] = {
   { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
@@ -193,9 +196,13 @@ int parseargs(int argc, char **argv) {
     }
   }
 
-  /* Feed the remaining args into a linked list */
+  /* push remaining targets onto stack */
   while (optind < argc) {
-    targets = llist_add(targets, strdup(argv[optind++]));
+    if (targets.idx >= TARGETMAX) {
+      fprintf(stderr, "error: stack overflow detected! a maximum of 32 packages are allowed\n");
+      return 1;
+    }
+    targets.stack[targets.idx++] = argv[optind++];
   }
 
   return 0;
@@ -329,7 +336,7 @@ int main(int argc, char **argv) {
   int ret = 0, cookie_valid = FALSE;
 
   config = config_new();
-  targets = NULL;
+  targets.idx = 0;
 
   ret = parseargs(argc, argv);
   if (ret != 0) {
@@ -348,7 +355,7 @@ int main(int argc, char **argv) {
     goto finish;
   }
 
-  if (targets == NULL) {
+  if (targets.idx == 0) {
     usage();
     goto finish;
   }
@@ -426,9 +433,10 @@ int main(int argc, char **argv) {
   }
 
   if (cookie_valid || aur_login() == 0) {
-    struct llist_t *l;
-    for (l = targets; l; l = l->next)
-      aur_upload((const char*)l->data);
+    int i;
+    for (i = 0; i < targets.idx; i++) {
+      aur_upload(targets.stack[i]);
+    }
   }
 
   if (config->verbose > 1) {
@@ -441,8 +449,6 @@ int main(int argc, char **argv) {
   curl_global_cleanup();
 
 finish:
-  llist_free(targets, free);
-
   if (config->cookies != NULL && ! config->persist) {
     if (config->verbose > 1) {
       printf("::DEBUG:: Deleting file %s\n", config->cookies);

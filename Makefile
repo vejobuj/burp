@@ -2,7 +2,7 @@
 
 include config.mk
 
-SRC = burp.c conf.c curl.c llist.c util.c
+SRC = burp.c conf.c curl.c util.c
 OBJ = ${SRC:.c=.o}
 
 all: burp doc
