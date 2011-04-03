@@ -53,7 +53,11 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
   }
 
   /* fgets() will leave a newline char on the end */
-  fgets(buf, maxlen, stdin);
+  if (!fgets(buf, maxlen, stdin)) {
+    fprintf(stderr, "failed to read from stdin\n");
+    return NULL;
+  }
+
   *(buf + strlen(buf) - 1) = '\0';
   putchar('\n');
 
@@ -68,7 +72,10 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
 char *get_tmpfile(const char *format) {
   char *buf;
 
-  asprintf(&buf, format, getpid());
+  if (asprintf(&buf, format, getpid()) < 0 || !buf) {
+    fprintf(stderr, "unable to allocate tmpfile name\n");
+    return NULL;
+  }
 
   return buf;
 }
