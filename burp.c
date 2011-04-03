@@ -42,12 +42,24 @@
 #define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
 #define COOKIE_SIZE 1024
 
-static struct llist_t *targets;
+/* forward decls */
+static int category_is_valid(const char*);
+static long cookie_expire_time(const char*, const char*, const char*);
+static int fn_cmp_cat (const void*, const void*);
+static int parseargs(int, char**);
+static int read_config_file(void);
+static void usage(void);
+static void usage_categories(void);
 
+
+/* structures */
 typedef struct __category_t {
   const char *name;
   int num;
 } category_t;
+
+/* global data */
+static struct llist_t *targets;
 
 static category_t categories[] = {
   { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
@@ -58,9 +70,19 @@ static category_t categories[] = {
   { "system",      16 }, { "x11",         17 }, { "xfce",        18 }
 };
 
-static long cookie_expire_time(const char *cookie_file,
-                               const char *domain,
-                               const char *name) {
+int category_is_valid(const char *cat) {
+  category_t key, *res;
+
+  key.name = cat;
+
+  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
+
+  return res ? res->num : -1;
+}
+
+long cookie_expire_time(const char *cookie_file,
+                        const char *domain,
+                        const char *name) {
   FILE *fp;
   long expire;
   char cdomain[256], cname[256];
@@ -103,24 +125,83 @@ static long cookie_expire_time(const char *cookie_file,
   return expire;
 }
 
-static int fn_cmp_cat (const void *c1, const void *c2) {
+int fn_cmp_cat (const void *c1, const void *c2) {
   category_t *cat1 = (category_t*)c1;
   category_t *cat2 = (category_t*)c2;
 
   return strcmp(cat1->name, cat2->name);
 }
 
-static int category_is_valid(const char *cat) {
-  category_t key, *res;
+int parseargs(int argc, char **argv) {
+  int opt;
+  int option_index = 0;
+  static struct option opts[] = {
+    {"help",          no_argument,        0, 'h'},
+    {"user",          required_argument,  0, 'u'},
+    {"password",      required_argument,  0, 'p'},
+    {"keep-cookies",  no_argument,        0, 'k'},
+    {"category",      required_argument,  0, 'c'},
+    {"cookies",       required_argument,  0, 'C'},
+    {"verbose",       no_argument,        0, 'v'},
+    {0, 0, 0, 0}
+  };
 
-  key.name = cat;
+  while ((opt = getopt_long(argc, argv, "hu:p:kc:C:v", opts, &option_index))) {
+    if (opt < 0) {
+      break;
+    }
 
-  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(category_t), fn_cmp_cat);
+    switch (opt) {
+      case 'h':
+        usage();
+        exit(0);
+      case 'c':
+        if (config->category) {
+          FREE(config->category);
+        }
+        config->category = strndup(optarg, 16);
+        break;
+      case 'C':
+        if (config->cookies) {
+          FREE(config->cookies);
+        }
+        config->cookies = strndup(optarg, PATH_MAX);
+        break;
+      case 'k':
+        config->persist = TRUE;
+        break;
+      case 'p':
+        if (config->password) {
+          FREE(config->password);
+        }
+        config->password = strndup(optarg, AUR_PASSWORD_MAX);
+        break;
+      case 'u':
+        if (config->user) {
+          FREE(config->user);
+        }
+        config->user = strndup(optarg, AUR_USER_MAX);
+        break;
+      case 'v':
+        config->verbose++;
+        break;
 
-  return res ? res->num : -1;
+      case '?':
+        return 1;
+      default:
+        return 1;
+    }
+  }
+
+  /* Feed the remaining args into a linked list */
+  while (optind < argc) {
+    targets = llist_add(targets, strdup(argv[optind++]));
+  }
+
+  return 0;
 }
 
-static int read_config_file(void) {
+int read_config_file() {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
@@ -211,7 +292,7 @@ static int read_config_file(void) {
   return ret;
 }
 
-static void usage(void) {
+void usage() {
   fprintf(stderr, "burp %s\n"
   "Usage: burp [options] targets...\n\n"
   " Options:\n"
@@ -234,7 +315,7 @@ static void usage(void) {
   "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
-static void usage_categories(void) {
+void usage_categories() {
   unsigned i;
 
   printf("Valid categories are:\n");
@@ -242,75 +323,6 @@ static void usage_categories(void) {
     printf("\t%s\n", categories[i].name);
   }
   putchar('\n');
-}
-
-static int parseargs(int argc, char **argv) {
-  int opt;
-  int option_index = 0;
-  static struct option opts[] = {
-    {"help",          no_argument,        0, 'h'},
-    {"user",          required_argument,  0, 'u'},
-    {"password",      required_argument,  0, 'p'},
-    {"keep-cookies",  no_argument,        0, 'k'},
-    {"category",      required_argument,  0, 'c'},
-    {"cookies",       required_argument,  0, 'C'},
-    {"verbose",       no_argument,        0, 'v'},
-    {0, 0, 0, 0}
-  };
-
-  while ((opt = getopt_long(argc, argv, "hu:p:kc:C:v", opts, &option_index))) {
-    if (opt < 0) {
-      break;
-    }
-
-    switch (opt) {
-      case 'h':
-        usage();
-        exit(0);
-      case 'c':
-        if (config->category) {
-          FREE(config->category);
-        }
-        config->category = strndup(optarg, 16);
-        break;
-      case 'C':
-        if (config->cookies) {
-          FREE(config->cookies);
-        }
-        config->cookies = strndup(optarg, PATH_MAX);
-        break;
-      case 'k':
-        config->persist = TRUE;
-        break;
-      case 'p':
-        if (config->password) {
-          FREE(config->password);
-        }
-        config->password = strndup(optarg, AUR_PASSWORD_MAX);
-        break;
-      case 'u':
-        if (config->user) {
-          FREE(config->user);
-        }
-        config->user = strndup(optarg, AUR_USER_MAX);
-        break;
-      case 'v':
-        config->verbose++;
-        break;
-
-      case '?':
-        return 1;
-      default:
-        return 1;
-    }
-  }
-
-  /* Feed the remaining args into a linked list */
-  while (optind < argc) {
-    targets = llist_add(targets, strdup(argv[optind++]));
-  }
-
-  return 0;
 }
 
 int main(int argc, char **argv) {
