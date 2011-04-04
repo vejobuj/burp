@@ -30,9 +30,6 @@
 #include <stdarg.h>
 #include <string.h>
 
-#define TRUE 1
-#define FALSE 0
-
 #define ALLOC_FAIL(s) do { fprintf(stderr, "could not allocate %lu bytes\n", s); } while(0)
 #define CALLOC(p, l, s, action) do { p = calloc(l, s); if(!p) { ALLOC_FAIL(s); action; } } while(0)
 #define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)

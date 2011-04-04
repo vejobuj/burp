@@ -28,6 +28,7 @@
 #include <getopt.h>
 #include <limits.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
@@ -163,7 +164,7 @@ int parseargs(int argc, char **argv) {
         config->cookies = strndup(optarg, PATH_MAX);
         break;
       case 'k':
-        config->persist = TRUE;
+        config->persist = true;
         break;
       case 'p':
         if (config->password) {
@@ -256,7 +257,7 @@ int read_config_file() {
         }
       }
     } else if (STREQ(key, "Persist")) {
-      config->persist = TRUE;
+      config->persist = true;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;
@@ -303,7 +304,7 @@ void usage_categories() {
 }
 
 int main(int argc, char **argv) {
-  int ret = 0, cookie_valid = FALSE;
+  int ret = 0, cookie_valid = false;
 
   config = config_new();
 
@@ -358,7 +359,7 @@ int main(int argc, char **argv) {
       long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
         if (time(NULL) < expire) {
-          cookie_valid = TRUE;
+          cookie_valid = true;
         } else {
           fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
         }
