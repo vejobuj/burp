@@ -110,9 +110,7 @@ long cookie_expire_time(const char *cookie_file,
     }
 
     if (STREQ(domain, cdomain) && STREQ(name, cname)) {
-      if (config->verbose > 1) {
-        printf("::DEBUG:: Cookie found (expires %ld)\n", expire);
-      }
+      debug("cookie found (expires %ld)\n", expire);
       break;
     }
   }
@@ -207,17 +205,10 @@ int read_config_file() {
       getenv("HOME"));
   }
 
-  if (!access(config_path, R_OK) == 0) {
-    if (config->verbose > 1) {
-      printf("::DEBUG:: No config file found or not readable\n");
-    }
-    return ret;
-  }
-
   conf_fd = fopen(config_path, "r");
-
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Found config file\n");
+  if (!conf_fd) {
+    debug("no config file found or not readable\n");
+    return ret;
   }
 
   while (fgets(line, BUFSIZ, conf_fd)) {
@@ -240,16 +231,12 @@ int read_config_file() {
     if (STREQ(key, "User")) {
       if (config->user == NULL) {
         config->user = strndup(ptr, AUR_USER_MAX);
-        if (config->verbose > 1) {
-          printf("::DEBUG:: Using username: %s\n", config->user);
-        }
+        debug("using username: %s\n", config->user);
       }
     } else if (STREQ(key, "Password")) {
       if (config->password == NULL) {
         config->password = strndup(ptr, AUR_PASSWORD_MAX);
-        if (config->verbose > 1) {
-          printf("::DEBUG:: Using password from config file.\n");
-        }
+        debug("using password from config file.\n");
       }
     } else if (STREQ(key, "Cookies")) {
       if (config->cookies == NULL) {
@@ -257,9 +244,7 @@ int read_config_file() {
         if (wordexp(ptr, &p, 0) == 0) {
           if (p.we_wordc == 1) {
             config->cookies = strdup(p.we_wordv[0]);
-            if (config->verbose >= 2) {
-              printf("::DEBUG:: Using cookie file: %s\n", config->cookies);
-            }
+            debug("using cookie file: %s\n", config->cookies);
           } else {
             fprintf(stderr, "Ambiguous path to cookie file. Ignoring config option.\n");
           }
@@ -353,16 +338,6 @@ int main(int argc, char **argv) {
     read_config_file();
   }
 
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Runtime options:\n");
-    printf("  config->user = %s\n", config->user);
-    printf("  config->password = %s\n", config->password);
-    printf("  config->cookies = %s\n", config->cookies);
-    printf("  config->persist = %s\n", config->persist ? "true" : "false");
-    printf("  config->category = %s\n", config->category);
-    printf("  config->verbose = %d\n", config->verbose);
-  }
-
   /* Quick sanity check */
   if (config->persist && !config->cookies) {
     fprintf(stderr, "%s: Error parsing options: do not specify persistent "
@@ -397,9 +372,7 @@ int main(int argc, char **argv) {
   }
 
   if (!cookie_valid) {
-    if (config->verbose > 1) {
-      fprintf(stderr, "::DEBUG:: cookie auth will fail. Falling back to user/pass\n");
-    }
+    debug("cookie auth will fail. Falling back to user/pass\n");
 
     if (config->user == NULL) {
       config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
@@ -422,17 +395,13 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Cleaning up curl handle\n");
-  }
+  debug("Cleaning up curl handle\n");
 
   curl_cleanup();
 
 finish:
   if (config->cookies != NULL && !config->persist) {
-    if (config->verbose > 1) {
-      printf("::DEBUG:: Deleting file %s\n", config->cookies);
-    }
+    debug("Deleting file %s\n", config->cookies);
     unlink(config->cookies);
   }
 

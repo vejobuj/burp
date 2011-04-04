@@ -27,6 +27,7 @@
 #ifndef _BURP_UTIL_H
 #define _BURP_UTIL_H
 
+#include <stdarg.h>
 #include <string.h>
 
 #define TRUE 1
@@ -37,6 +38,7 @@
 #define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)
 #define STREQ(x,y) strcmp(x,y) == 0
 
+void debug(const char*, ...);
 char *read_stdin(const char*, size_t, int);
 char *get_tmpfile(const char*);
 char *strtrim(char*);

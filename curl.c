@@ -31,6 +31,7 @@
 
 #include "conf.h"
 #include "curl.h"
+#include "util.h"
 
 static CURL *curl;
 
@@ -57,11 +58,7 @@ int curl_init() {
     return 1;
   }
 
-  if (config->verbose > 1) {
-    printf("::DEBUG:: Initializing curl\n");
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-  }
-
+  debug("initializing curl\n");
   curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
@@ -120,9 +117,7 @@ long aur_login(void) {
     goto cleanup;
   }
 
-  if (config->verbose > 1) {
-    printf("%s\n", response.memory);
-  }
+  debug("%s\n", response.memory);
 
   if (strstr(response.memory, AUR_LOGIN_FAIL_MSG) != NULL) {
     fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
