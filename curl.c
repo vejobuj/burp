@@ -50,11 +50,12 @@ static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream)
 }
 
 int curl_init() {
-  if (!curl_global_init(CURL_GLOBAL_SSL)) {
+  if (curl_global_init(CURL_GLOBAL_SSL) != 0) {
     return 1;
   }
 
-  if (!(curl = curl_easy_init())) {
+  curl = curl_easy_init();
+  if (!curl) {
     return 1;
   }
 
