@@ -326,7 +326,7 @@ int main(int argc, char **argv) {
   }
 
   if (optind == argc) {
-    fprintf(stderr, "error: no packages specified (use -h for help)");
+    fprintf(stderr, "error: no packages specified (use -h for help)\n");
     goto finish;
   }
 
@@ -341,9 +341,8 @@ int main(int argc, char **argv) {
 
   /* Quick sanity check */
   if (config->persist && !config->cookies) {
-    fprintf(stderr, "%s: Error parsing options: do not specify persistent "
-                    "cookies without providing a path to the cookie file.\n",
-                    argv[0]);
+    fprintf(stderr, "error: do not specify persistent "
+                    "cookies without providing a path to a cookie file.\n");
     goto finish;
   }
 
