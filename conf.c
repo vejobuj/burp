@@ -33,23 +33,14 @@
 config_t *config = NULL;
 
 void config_free(config_t *config) {
-  if (config->user) {
-    free(config->user);
-  }
-
-  if (config->password) {
-    free(config->password);
-  }
-
-  if (config->cookies) {
-    free(config->cookies);
-  }
-
   if (config->category && !STREQ(config->category, "None")) {
     free(config->category);
   }
 
-  free(config);
+  FREE(config->user);
+  FREE(config->password);
+  FREE(config->cookies);
+  FREE(config);
 }
 
 config_t *config_new(void) {
