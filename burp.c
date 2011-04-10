@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <termios.h>
 #include <unistd.h>
 #include <wordexp.h>
@@ -196,23 +197,23 @@ int read_config_file() {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
-  FILE *conf_fd;
+  FILE *fp;
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home) {
-    snprintf(&config_path[0], PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
+    snprintf(config_path, PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
   } else {
-    snprintf(&config_path[0], PATH_MAX, "%s/.config/burp/burp.conf",
+    snprintf(config_path, PATH_MAX, "%s/.config/burp/burp.conf",
       getenv("HOME"));
   }
 
-  conf_fd = fopen(config_path, "r");
-  if (!conf_fd) {
-    debug("no config file found or not readable\n");
+  fp = fopen(config_path, "r");
+  if (!fp) {
+    debug("failed to open %s: %s\n", config_path, strerror(errno));
     return ret;
   }
 
-  while (fgets(line, BUFSIZ, conf_fd)) {
+  while (fgets(line, BUFSIZ, fp)) {
     char *key;
     strtrim(line);
 
@@ -265,7 +266,7 @@ int read_config_file() {
     }
   }
 
-  fclose(conf_fd);
+  fclose(fp);
 
   return ret;
 }
