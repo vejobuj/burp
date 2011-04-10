@@ -65,7 +65,7 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
   struct termios t;
   char *buf;
 
-  CALLOC(buf, 1, ++maxlen, return NULL);
+  MALLOC(buf, ++maxlen, return NULL);
 
   printf("%s: ", prompt);
 

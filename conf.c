@@ -46,7 +46,7 @@ void config_free(config_t *config) {
 config_t *config_new(void) {
   config_t *config;
 
-  CALLOC(config, 1, sizeof *config, return NULL);
+  MALLOC(config, sizeof *config, return NULL);
 
   return config;
 }
