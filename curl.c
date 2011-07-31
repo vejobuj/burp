@@ -195,7 +195,7 @@ long aur_upload(const char *taurball) {
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
-  if(httpcode != 200) {
+  if (httpcode != 200) {
     fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
     ret = httpcode;
     goto cleanup;
