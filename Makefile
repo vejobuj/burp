@@ -1,16 +1,17 @@
 # burp - seamless AUR uploading
 
-include config.mk
+VERSION   = $(shell git describe)
+
+CFLAGS   += -std=c99 -g -pedantic -Wall -Wextra -Werror ${CPPFLAGS}
+CPPFLAGS += -DVERSION=\"${VERSION}\"
+LDFLAGS  += -lcurl
+
+PREFIX    = /local/usr
 
 SRC = burp.c conf.c curl.c util.c
 OBJ = ${SRC:.c=.o}
 
 all: burp doc
-
-.c.o:
-	${CC} -c ${CFLAGS} $<
-
-${OBJ}: config.mk
 
 burp: ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS}
@@ -21,10 +22,9 @@ burp.1: README.pod
 
 dist: clean
 	mkdir -p burp-${VERSION}
-	cp -R ${SRC} *.h README.pod Makefile bash_completion burp-${VERSION}
-	sed "s/^VERSION.*/VERSION = ${VERSION}/g" < config.mk > burp-${VERSION}/config.mk
-	tar -cf burp-${VERSION}.tar burp-${VERSION}
-	gzip burp-${VERSION}.tar
+	cp -R ${SRC} *.h README.pod bash_completion burp-${VERSION}
+	sed "s/^VERSION *.*/VERSION = ${VERSION}/" < Makefile > burp-${VERSION}/Makefile
+	tar -czf burp-${VERSION}.tar.gz burp-${VERSION}
 	${RM} -r burp-${VERSION}
 
 clean:
@@ -36,7 +36,7 @@ strip: burp
 install: burp doc
 	install -Dm755 burp ${DESTDIR}${PREFIX}/bin/burp
 	install -Dm644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
-	install -Dm644 burp.1 ${DESTDIR}${MANPREFIX}/man1/burp.1
+	install -Dm644 burp.1 ${DESTDIR}/share/man/man1/burp.1
 
 uninstall:
 	${RM} ${DESTDIR}${PREFIX}/bin/burp

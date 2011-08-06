@@ -24,6 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#define _GNU_SOURCE
 #include <ctype.h>
 #include <fcntl.h>
 #include <limits.h>

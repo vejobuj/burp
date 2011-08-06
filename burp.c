@@ -24,6 +24,7 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#define _GNU_SOURCE
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
@@ -53,14 +54,13 @@ static int read_config_file(void);
 static void usage(void);
 static void usage_categories(void);
 
-
 /* structures */
 typedef struct __category_t {
   const char *name;
   int num;
 } category_t;
 
-static category_t categories[] = {
+static const category_t categories[] = {
   { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
   { "emulators",    5 }, { "games",        6 }, { "gnome",        7 },
   { "i18n",         8 }, { "kde",          9 }, { "kernels",     19 },
@@ -79,9 +79,8 @@ int category_is_valid(const char *cat) {
   return res ? res->num : -1;
 }
 
-long cookie_expire_time(const char *cookie_file,
-                        const char *domain,
-                        const char *name) {
+long cookie_expire_time(const char *cookie_file, const char *domain,
+    const char *name) {
   FILE *fp;
   long expire;
   char cdomain[256], cname[256];
@@ -122,7 +121,7 @@ long cookie_expire_time(const char *cookie_file,
   return expire;
 }
 
-int fn_cmp_cat (const void *c1, const void *c2) {
+int fn_cmp_cat(const void *c1, const void *c2) {
   category_t *cat1 = (category_t*)c1;
   category_t *cat2 = (category_t*)c2;
 
