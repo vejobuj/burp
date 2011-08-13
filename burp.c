@@ -132,17 +132,17 @@ int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
   static struct option opts[] = {
-    {"help",          no_argument,        0, 'h'},
-    {"user",          required_argument,  0, 'u'},
-    {"password",      required_argument,  0, 'p'},
-    {"keep-cookies",  no_argument,        0, 'k'},
-    {"category",      required_argument,  0, 'c'},
     {"cookies",       required_argument,  0, 'C'},
+    {"category",      required_argument,  0, 'c'},
+    {"help",          no_argument,        0, 'h'},
+    {"keep-cookies",  no_argument,        0, 'k'},
+    {"password",      required_argument,  0, 'p'},
+    {"user",          required_argument,  0, 'u'},
     {"verbose",       no_argument,        0, 'v'},
     {0, 0, 0, 0}
   };
 
-  while ((opt = getopt_long(argc, argv, "hu:p:kc:C:v", opts, &option_index))) {
+  while ((opt = getopt_long(argc, argv, "C:c:hkp:u:v", opts, &option_index))) {
     if (opt < 0) {
       break;
     }
