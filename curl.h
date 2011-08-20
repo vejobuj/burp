@@ -50,17 +50,10 @@
 
 #define AUR_LOGIN_FAIL_MSG      "Bad username or password."
 
-/* upload errors */
-#define AUR_NO_LOGIN            "You must create an account before you can upload packages"
-#define AUR_NO_OVERWRITE        "not allowed to overwrite"
-#define AUR_UNKNOWN_FORMAT      "Unknown file format"
-#define AUR_INVALID_NAME        "Invalid name"
-#define AUR_NO_PKGBUILD         "PKGBUILD does not exist"
-#define AUR_NO_BUILD_FUNC       "Missing build function"
-#define AUR_MISSING_VAR         "Missing %s variable in PKGBUILD"
-#define AUR_MISSING_PROTO       "missing a protocol"
-
-
+#define STARTTAG                "<p class=\"pkgoutput\">"
+#define ENDTAG                  "</p>"
+#define REGPATTERN              STARTTAG "(.+)" ENDTAG
+#define REGEX_OPTS              REG_ICASE|REG_EXTENDED|REG_NEWLINE
 
 struct write_result {
   char *memory;

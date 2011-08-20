@@ -25,6 +25,7 @@
  */
 
 #define _GNU_SOURCE
+#include <regex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -137,9 +138,40 @@ cleanup:
   return ret;
 }
 
+char *strip_html_tags(const char *unsanitized, size_t len) {
+  int in_tag = 0;
+  size_t i;
+  char *ptr;
+  char *sanitized;
+
+  MALLOC(sanitized, len, return NULL);
+  ptr = sanitized;
+
+  for (i = 0; i < len; i++) {
+    switch (unsanitized[i]) {
+      case '<':
+        in_tag = 1;
+        break;
+      case '>':
+        in_tag = 0;
+        break;
+      default:
+        if (!in_tag) {
+          *ptr++ = unsanitized[i];
+        }
+        break;
+    }
+  }
+
+  *ptr++ = '\0';
+
+  return sanitized;
+}
+
 long aur_upload(const char *taurball) {
-  char *ptr, *fullpath;
-  char missing_var[10], category[3];
+  char *errormsg, *fullpath;
+  char category[3];
+  const char *error_start, *error_end;
   long httpcode, ret = 0;
   CURLcode status;
   struct curl_httppost *post, *last;
@@ -206,33 +238,20 @@ long aur_upload(const char *taurball) {
     printf("%s\n", response.memory);
   }
 
-  if (strstr(response.memory, AUR_NO_LOGIN)) {
-    fprintf(stderr, "Error: Authentication failed on upload.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_NO_OVERWRITE)) {
-    fprintf(stderr, "Error: You don't have permission to overwrite this file.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_UNKNOWN_FORMAT)) {
-    fprintf(stderr, "Error: Incorrect file format. Upload must conform to AUR "
-                    "packaging guidelines.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_INVALID_NAME)) {
-    fprintf(stderr, "Error: Invalid package name. Only lowercase letters are "
-                    "allowed. Make sure this isn't a split package.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_NO_PKGBUILD)) {
-    fprintf(stderr, "Error: PKGBUILD does not exist in uploaded source.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_NO_BUILD_FUNC)) {
-    fprintf(stderr, "Error: PKGBUILD is missing build function.\n");
-    ret = 1;
-  } else if (strstr(response.memory, AUR_MISSING_PROTO)) { 
-    fprintf(stderr, "Error: Package URL is missing a protocol\n");
-    ret = 1;
-  } else if ((ptr = strstr(response.memory, "Missing")) && 
-              sscanf(ptr, AUR_MISSING_VAR, missing_var)) {
-    fprintf(stderr, "Error: Package is missing %s variable\n", missing_var);
-    ret = 1;
+  error_start = strstr(response.memory, STARTTAG);
+  if (error_start) {
+    error_start += strlen(STARTTAG);
+    error_end = strstr(error_start, ENDTAG);
+    if (!error_end) {
+      /* broken html! i blame lukas */
+      fprintf(stderr, "an unknown error occurred.\n");
+    } else {
+      errormsg = strip_html_tags(error_start, error_end - error_start);
+      if (errormsg) {
+        fprintf(stderr, "error: %s\n", errormsg);
+      }
+      FREE(errormsg);
+    }
   } else {
     printf("%s has been uploaded successfully.\n", basename(taurball));
   }
