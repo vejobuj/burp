@@ -32,7 +32,7 @@
 
 #define ALLOC_FAIL(s) do { fprintf(stderr, "could not allocate %zd bytes\n", s); } while(0)
 #define MALLOC(p, s, action) do { p = calloc(1, s); if(!p) { ALLOC_FAIL(s); action; } } while(0)
-#define FREE(x) do { if(x) free((void*)x); x = NULL; } while(0)
+#define FREE(x) do { free((void*)x); x = NULL; } while(0)
 #define STREQ(x,y) strcmp(x,y) == 0
 
 void debug(const char*, ...);
