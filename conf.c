@@ -39,7 +39,7 @@ void config_free(config_t *config) {
 
   FREE(config->user);
   FREE(config->password);
-  FREE(config->cookies);
+  FREE(config->cookie_file);
   FREE(config);
 }
 

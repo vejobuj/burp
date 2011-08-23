@@ -62,8 +62,8 @@ int curl_init() {
   }
 
   debug("initializing curl\n");
-  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookies);
-  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookies);
+  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookie_file);
+  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookie_file);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 
@@ -88,7 +88,7 @@ long aur_login(void) {
   curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
       CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
 
-  if (config->persist) {
+  if (config->cookie_persist) {
     curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
         CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
   }

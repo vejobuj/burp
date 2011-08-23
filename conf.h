@@ -32,10 +32,11 @@
 typedef struct __config_t {
   char *user;
   char *password;
-  char *cookies;
   char *category;
+  char *cookie_file;
+  int cookie_valid;
+  int cookie_persist;
   int catnum;
-  int persist;
   int verbose;
 } config_t;
 

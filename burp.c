@@ -158,13 +158,13 @@ int parseargs(int argc, char **argv) {
         config->category = strndup(optarg, 16);
         break;
       case 'C':
-        if (config->cookies) {
-          FREE(config->cookies);
+        if (config->cookie_file) {
+          FREE(config->cookie_file);
         }
-        config->cookies = strndup(optarg, PATH_MAX);
+        config->cookie_file = strndup(optarg, PATH_MAX);
         break;
       case 'k':
-        config->persist = true;
+        config->cookie_persist = true;
         break;
       case 'p':
         if (config->password) {
@@ -240,12 +240,12 @@ int read_config_file() {
         debug("using password from config file.\n");
       }
     } else if (STREQ(key, "Cookies")) {
-      if (config->cookies == NULL) {
+      if (config->cookie_file == NULL) {
         wordexp_t p;
         if (wordexp(ptr, &p, 0) == 0) {
           if (p.we_wordc == 1) {
-            config->cookies = strdup(p.we_wordv[0]);
-            debug("using cookie file: %s\n", config->cookies);
+            config->cookie_file = strdup(p.we_wordv[0]);
+            debug("using cookie file: %s\n", config->cookie_file);
           } else {
             fprintf(stderr, "Ambiguous path to cookie file. Ignoring config option.\n");
           }
@@ -257,7 +257,7 @@ int read_config_file() {
         }
       }
     } else if (STREQ(key, "Persist")) {
-      config->persist = true;
+      config->cookie_persist = true;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;
@@ -304,7 +304,7 @@ void usage_categories() {
 }
 
 int main(int argc, char **argv) {
-  int ret = 1, cookie_valid = false;
+  int ret = 1;
 
   config = config_new();
 
@@ -340,43 +340,43 @@ int main(int argc, char **argv) {
    * Therefore, if ((user && pass) || cookie file) is supplied on the command
    * line, we won't read the config file.
    */
-  if (!(config->user || config->cookies)) {
+  if (!(config->user || config->cookie_file)) {
     read_config_file();
   }
 
   /* Quick sanity check */
-  if (config->persist && !config->cookies) {
+  if (config->cookie_persist && !config->cookie_file) {
     fprintf(stderr, "error: do not specify persistent "
                     "cookies without providing a path to a cookie file.\n");
     goto finish;
   }
 
   /* Determine how we'll login -- either by cookie or credentials */
-  if (config->cookies != NULL) { /* User specified cookie file */
-    if (!access(config->cookies, R_OK) == 0) {
-      if (touch(config->cookies) != 0) {
+  if (config->cookie_file) { /* User specified cookie file */
+    if (!access(config->cookie_file, R_OK) == 0) {
+      if (touch(config->cookie_file) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
-        perror(config->cookies);
+        perror(config->cookie_file);
         goto finish;
       }
     } else { /* assume its a real cookie file and evaluate it */
-      long expire = cookie_expire_time(config->cookies, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
+      long expire = cookie_expire_time(config->cookie_file, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
       if (expire > 0) {
         if (time(NULL) < expire) {
-          cookie_valid = true;
+          config->cookie_valid = true;
         } else {
           fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
         }
       }
     }
   } else { /* create PID based file in /tmp */
-    if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
+    if ((config->cookie_file = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
       fprintf(stderr, "error creating cookie file.\n");
       goto finish;
     }
   }
 
-  if (!cookie_valid) {
+  if (!config->cookie_valid) {
     debug("cookie auth will fail. Falling back to user/pass\n");
 
     if (config->user == NULL) {
@@ -389,7 +389,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (cookie_valid || aur_login() == 0) {
+  if (config->cookie_valid || aur_login() == 0) {
     ret = 0;
     while (optind < argc) {
       ret += aur_upload(argv[optind++]);
@@ -397,9 +397,9 @@ int main(int argc, char **argv) {
   }
 
 finish:
-  if (config->cookies && !config->persist) {
-    debug("Deleting file %s\n", config->cookies);
-    unlink(config->cookies);
+  if (config->cookie_file && !config->cookie_persist) {
+    debug("Deleting file %s\n", config->cookie_file);
+    unlink(config->cookie_file);
   }
 
   config_free(config);
