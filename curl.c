@@ -170,7 +170,7 @@ char *strip_html_tags(const char *unsanitized, size_t len) {
 
 long aur_upload(const char *taurball) {
   char *errormsg, *fullpath, *effective_url;
-  char category[3];
+  char category[3], errbuffer[CURL_ERROR_SIZE] = {0};
   const char *error_start, *error_end, *redir_page = NULL;
   const char * const packages_php = "packages.php";
   long httpcode, ret = 1;
@@ -215,15 +215,15 @@ long aur_upload(const char *taurball) {
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+  curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuffer);
 
-  if (config->verbose > 0) {
-    printf("Uploading taurball: %s\n", config->verbose > 1 ? fullpath : taurball);
+  if (config->verbose) {
+    printf("Uploading taurball: %s\n", fullpath);
   }
 
   status = curl_easy_perform(curl);
   if (status != CURLE_OK) {
-    fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL,
-        curl_easy_strerror(status));
+    fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL, errbuffer);
     goto cleanup;
   }
 
@@ -233,20 +233,26 @@ long aur_upload(const char *taurball) {
     goto cleanup;
   }
 
+  debug("%s\n", response.memory);
+
   curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effective_url);
   if (effective_url) {
     redir_page = strrchr(effective_url, '/') + 1;
+    if (strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
+      printf("%s has been uploaded successfully.\n", taurball);
+      ret = 0;
+      goto cleanup;
+    }
   }
 
-  debug("%s\n", response.memory);
-
+  /* failboat */
   error_start = strstr(response.memory, STARTTAG);
   if (error_start) {
     error_start += strlen(STARTTAG);
     error_end = strstr(error_start, ENDTAG);
     if (!error_end) {
       /* broken html! i blame lukas */
-      fprintf(stderr, "an unknown error occurred.\n");
+      fprintf(stderr, "error: unexpected failure uploading `%s'\n", taurball);
     } else {
       errormsg = strip_html_tags(error_start, error_end - error_start);
       if (errormsg) {
@@ -254,14 +260,10 @@ long aur_upload(const char *taurball) {
       }
       FREE(errormsg);
     }
-  } else {
-    if (redir_page && strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
-      printf("%s has been uploaded successfully.\n", basename(taurball));
-      ret = 0;
-    } else {
-      fprintf(stderr, "an unknown error occurred.\n");
-    }
+    goto cleanup;
   }
+
+  fprintf(stderr, "error: unexpected failure uploading `%s'\n", taurball);
 
 cleanup:
   free(fullpath);
