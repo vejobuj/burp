@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "conf.h"
 #include "curl.h"
@@ -62,10 +63,34 @@ int curl_init() {
   }
 
   debug("initializing curl\n");
-  curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookie_file);
-  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookie_file);
+
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+
+  return 0;
+}
+
+int cookie_setup(void) {
+
+  /* enable cookie management for this session */
+  curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
+
+  if (!config->cookie_file) {
+    return 0;
+  }
+
+  if (!access(config->cookie_file, F_OK) == 0) {
+    if (touch(config->cookie_file) != 0) {
+      fprintf(stderr, "error: failed to create cookie file: ");
+      perror(config->cookie_file);
+      return 1;
+    }
+  }
+
+  if (config->cookie_persist) {
+    curl_easy_setopt(curl, CURLOPT_COOKIEJAR, config->cookie_file);
+    curl_easy_setopt(curl, CURLOPT_COOKIEFILE, config->cookie_file);
+  }
 
   return 0;
 }

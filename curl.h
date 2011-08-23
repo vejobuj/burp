@@ -60,6 +60,7 @@ struct write_result {
   size_t size;
 };
 
+int cookie_setup(void);
 int curl_init(void);
 void curl_cleanup(void);
 long aur_login(void);

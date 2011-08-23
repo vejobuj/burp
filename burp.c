@@ -29,7 +29,6 @@
 #include <getopt.h>
 #include <limits.h>
 #include <signal.h>
-#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -164,7 +163,7 @@ int parseargs(int argc, char **argv) {
         config->cookie_file = strndup(optarg, PATH_MAX);
         break;
       case 'k':
-        config->cookie_persist = true;
+        config->cookie_persist = 1;
         break;
       case 'p':
         if (config->password) {
@@ -257,7 +256,7 @@ int read_config_file() {
         }
       }
     } else if (STREQ(key, "Persist")) {
-      config->cookie_persist = true;
+      config->cookie_persist = 1;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
       ret = 1;
@@ -304,6 +303,7 @@ void usage_categories() {
 }
 
 int main(int argc, char **argv) {
+  long cookie_expire;
   int ret = 1;
 
   config = config_new();
@@ -315,8 +315,10 @@ int main(int argc, char **argv) {
 
   ret = parseargs(argc, argv);
   if (ret != 0) {
-    goto finish;
+    return 1;
   }
+
+  config = config_new();
 
   /* Ensure we have a proper config environment */
   if (config->category == NULL) {
@@ -344,46 +346,33 @@ int main(int argc, char **argv) {
     read_config_file();
   }
 
-  /* Quick sanity check */
   if (config->cookie_persist && !config->cookie_file) {
-    fprintf(stderr, "error: do not specify persistent "
-                    "cookies without providing a path to a cookie file.\n");
+    fprintf(stderr, "warning: ignoring --persist without path to cookie file\n");
+  }
+
+  if (cookie_setup() != 0) {
     goto finish;
   }
 
-  /* Determine how we'll login -- either by cookie or credentials */
-  if (config->cookie_file) { /* User specified cookie file */
-    if (!access(config->cookie_file, R_OK) == 0) {
-      if (touch(config->cookie_file) != 0) {
-        fprintf(stderr, "Error creating cookie file: ");
-        perror(config->cookie_file);
-        goto finish;
-      }
-    } else { /* assume its a real cookie file and evaluate it */
-      long expire = cookie_expire_time(config->cookie_file, AUR_URL_NO_PROTO , AUR_COOKIE_NAME);
-      if (expire > 0) {
-        if (time(NULL) < expire) {
-          config->cookie_valid = true;
-        } else {
-          fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
-        }
-      }
-    }
-  } else { /* create PID based file in /tmp */
-    if ((config->cookie_file = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
-      fprintf(stderr, "error creating cookie file.\n");
-      goto finish;
+  cookie_expire = cookie_expire_time(config->cookie_file, AUR_URL_NO_PROTO, AUR_COOKIE_NAME);
+  if (cookie_expire > 0) {
+    if (time(NULL) < cookie_expire) {
+      config->cookie_valid = 1;
+    } else {
+      fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
     }
   }
 
   if (!config->cookie_valid) {
-    debug("cookie auth will fail. Falling back to user/pass\n");
-
-    if (config->user == NULL) {
+    if (!config->user) {
       config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
+      if (!config->user || !strlen(config->user)) {
+        fprintf(stderr, "error: invalid username supplied\n");
+        goto finish;
+      }
     }
 
-    if (config->password == NULL) {
+    if (!config->password) {
       printf("[%s] ", config->user);
       config->password = read_stdin("Enter password", AUR_PASSWORD_MAX, 0);
     }

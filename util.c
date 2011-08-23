@@ -94,17 +94,6 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
   return buf;
 }
 
-char *get_tmpfile(const char *format) {
-  char *buf;
-
-  if (asprintf(&buf, format, getpid()) < 0 || !buf) {
-    fprintf(stderr, "unable to allocate tmpfile name\n");
-    return NULL;
-  }
-
-  return buf;
-}
-
 char *strtrim(char *str) {
   char *pch = str;
 
