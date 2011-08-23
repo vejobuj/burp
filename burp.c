@@ -395,7 +395,7 @@ int main(int argc, char **argv) {
 
   if (cookie_valid || aur_login() == 0) {
     while (optind < argc) {
-      aur_upload(argv[optind++]);
+      ret += aur_upload(argv[optind++]);
     }
   } else {
     ret = 1;

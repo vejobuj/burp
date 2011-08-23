@@ -173,7 +173,7 @@ long aur_upload(const char *taurball) {
   char category[3];
   const char *error_start, *error_end, *redir_page = NULL;
   const char * const packages_php = "packages.php";
-  long httpcode, ret = 0;
+  long httpcode, ret = 1;
   CURLcode status;
   struct curl_httppost *post, *last;
   struct curl_slist *headers;
@@ -224,14 +224,12 @@ long aur_upload(const char *taurball) {
   if (status != CURLE_OK) {
     fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL,
         curl_easy_strerror(status));
-    ret = status;
     goto cleanup;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
   if (httpcode != 200) {
     fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
-    ret = httpcode;
     goto cleanup;
   }
 
@@ -240,9 +238,7 @@ long aur_upload(const char *taurball) {
     redir_page = strrchr(effective_url, '/') + 1;
   }
 
-  if (config->verbose > 1) {
-    printf("%s\n", response.memory);
-  }
+  debug("%s\n", response.memory);
 
   error_start = strstr(response.memory, STARTTAG);
   if (error_start) {
@@ -261,6 +257,7 @@ long aur_upload(const char *taurball) {
   } else {
     if (redir_page && strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
       printf("%s has been uploaded successfully.\n", basename(taurball));
+      ret = 0;
     } else {
       fprintf(stderr, "an unknown error occurred.\n");
     }
