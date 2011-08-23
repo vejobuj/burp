@@ -170,12 +170,14 @@ int parseargs(int argc, char **argv) {
           FREE(config->password);
         }
         config->password = strndup(optarg, AUR_PASSWORD_MAX);
+        config->cmdline_passwd = 1;
         break;
       case 'u':
         if (config->user) {
           FREE(config->user);
         }
         config->user = strndup(optarg, AUR_USER_MAX);
+        config->cmdline_user = 1;
         break;
       case 'v':
         config->verbose++;
@@ -364,7 +366,7 @@ int main(int argc, char **argv) {
   }
 
   if (!config->cookie_valid) {
-    if (!config->user) {
+    if (config->cmdline_user || !config->user) {
       config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
       if (!config->user || !strlen(config->user)) {
         fprintf(stderr, "error: invalid username supplied\n");
@@ -372,7 +374,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    if (!config->password) {
+    if (!config->password || (config->cmdline_user && !config->cmdline_passwd)) {
       printf("[%s] ", config->user);
       config->password = read_stdin("Enter password", AUR_PASSWORD_MAX, 0);
     }

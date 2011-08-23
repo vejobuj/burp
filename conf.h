@@ -34,6 +34,8 @@ typedef struct __config_t {
   char *password;
   char *category;
   char *cookie_file;
+  int cmdline_user;
+  int cmdline_passwd;
   int cookie_valid;
   int cookie_persist;
   int catnum;
