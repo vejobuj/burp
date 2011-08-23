@@ -184,18 +184,18 @@ long aur_upload(const char *taurball) {
   if (fullpath == NULL) {
     fprintf(stderr, "Error uploading file '%s': ", taurball);
     perror("");
-    return 1L;
+    return ret;
   }
 
   /* make sure the resolved path is a regular file */
   if (stat(fullpath, &st) != 0) {
     perror("stat");
-    return 1L;
+    return ret;
   }
 
   if (!S_ISREG(st.st_mode)) {
     fprintf(stderr, "skipping target `%s\': not a file\n", taurball);
-    return 1L;
+    return ret;
   }
 
   snprintf(category, 3, "%d", config->catnum);
@@ -222,9 +222,14 @@ long aur_upload(const char *taurball) {
   }
 
   status = curl_easy_perform(curl);
+
+  curl_slist_free_all(headers);
+  curl_formfree(post);
+  free(fullpath);
+
   if (status != CURLE_OK) {
     fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL, errbuffer);
-    goto cleanup;
+    return ret;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
@@ -250,26 +255,20 @@ long aur_upload(const char *taurball) {
   if (error_start) {
     error_start += strlen(STARTTAG);
     error_end = strstr(error_start, ENDTAG);
-    if (!error_end) {
-      /* broken html! i blame lukas */
-      fprintf(stderr, "error: unexpected failure uploading `%s'\n", taurball);
-    } else {
+    if (error_end) {
       errormsg = strip_html_tags(error_start, error_end - error_start);
       if (errormsg) {
         fprintf(stderr, "error: %s\n", errormsg);
+        FREE(errormsg);
       }
-      FREE(errormsg);
+      goto cleanup;
     }
-    goto cleanup;
   }
 
   fprintf(stderr, "error: unexpected failure uploading `%s'\n", taurball);
 
 cleanup:
-  free(fullpath);
   free(response.memory);
-  curl_slist_free_all(headers);
-  curl_formfree(post);
 
   return ret;
 }
