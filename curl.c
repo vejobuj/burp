@@ -169,9 +169,10 @@ char *strip_html_tags(const char *unsanitized, size_t len) {
 }
 
 long aur_upload(const char *taurball) {
-  char *errormsg, *fullpath;
+  char *errormsg, *fullpath, *effective_url;
   char category[3];
-  const char *error_start, *error_end;
+  const char *error_start, *error_end, *redir_page = NULL;
+  const char * const packages_php = "packages.php";
   long httpcode, ret = 0;
   CURLcode status;
   struct curl_httppost *post, *last;
@@ -234,6 +235,11 @@ long aur_upload(const char *taurball) {
     goto cleanup;
   }
 
+  curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effective_url);
+  if (effective_url) {
+    redir_page = strrchr(effective_url, '/') + 1;
+  }
+
   if (config->verbose > 1) {
     printf("%s\n", response.memory);
   }
@@ -253,7 +259,11 @@ long aur_upload(const char *taurball) {
       FREE(errormsg);
     }
   } else {
-    printf("%s has been uploaded successfully.\n", basename(taurball));
+    if (redir_page && strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
+      printf("%s has been uploaded successfully.\n", basename(taurball));
+    } else {
+      fprintf(stderr, "an unknown error occurred.\n");
+    }
   }
 
 cleanup:
