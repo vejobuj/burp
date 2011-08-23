@@ -304,9 +304,14 @@ void usage_categories() {
 }
 
 int main(int argc, char **argv) {
-  int ret = 0, cookie_valid = false;
+  int ret = 1, cookie_valid = false;
 
   config = config_new();
+
+  if (curl_init() != 0) {
+    fprintf(stderr, "Error: An error occurred while initializing curl\n");
+    goto finish;
+  }
 
   ret = parseargs(argc, argv);
   if (ret != 0) {
@@ -343,7 +348,6 @@ int main(int argc, char **argv) {
   if (config->persist && !config->cookies) {
     fprintf(stderr, "error: do not specify persistent "
                     "cookies without providing a path to a cookie file.\n");
-    ret = 1;
     goto finish;
   }
 
@@ -353,7 +357,6 @@ int main(int argc, char **argv) {
       if (touch(config->cookies) != 0) {
         fprintf(stderr, "Error creating cookie file: ");
         perror(config->cookies);
-        ret = 1;
         goto finish;
       }
     } else { /* assume its a real cookie file and evaluate it */
@@ -369,7 +372,6 @@ int main(int argc, char **argv) {
   } else { /* create PID based file in /tmp */
     if ((config->cookies = get_tmpfile(COOKIEFILE_FORMAT)) == NULL) {
       fprintf(stderr, "error creating cookie file.\n");
-      ret = 1;
       goto finish;
     }
   }
@@ -387,31 +389,21 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (curl_init() != 0) {
-    fprintf(stderr, "Error: An error occurred while initializing curl\n");
-    ret = 1;
-    goto finish;
-  }
-
   if (cookie_valid || aur_login() == 0) {
+    ret = 0;
     while (optind < argc) {
       ret += aur_upload(argv[optind++]);
     }
-  } else {
-    ret = 1;
   }
 
-  debug("Cleaning up curl handle\n");
-
-  curl_cleanup();
-
 finish:
-  if (config->cookies != NULL && !config->persist) {
+  if (config->cookies && !config->persist) {
     debug("Deleting file %s\n", config->cookies);
     unlink(config->cookies);
   }
 
   config_free(config);
+  curl_cleanup();
 
   return ret;
 }
