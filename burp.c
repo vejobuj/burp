@@ -151,31 +151,23 @@ int parseargs(int argc, char **argv) {
         usage();
         exit(0);
       case 'c':
-        if (config->category) {
-          FREE(config->category);
-        }
+        FREE(config->category);
         config->category = strndup(optarg, 16);
         break;
       case 'C':
-        if (config->cookie_file) {
-          FREE(config->cookie_file);
-        }
+        FREE(config->cookie_file);
         config->cookie_file = strndup(optarg, PATH_MAX);
         break;
       case 'k':
         config->cookie_persist = 1;
         break;
       case 'p':
-        if (config->password) {
-          FREE(config->password);
-        }
+        FREE(config->password);
         config->password = strndup(optarg, AUR_PASSWORD_MAX);
         config->cmdline_passwd = 1;
         break;
       case 'u':
-        if (config->user) {
-          FREE(config->user);
-        }
+        FREE(config->user);
         config->user = strndup(optarg, AUR_USER_MAX);
         config->cmdline_user = 1;
         break;
@@ -319,8 +311,6 @@ int main(int argc, char **argv) {
   if (ret != 0) {
     return 1;
   }
-
-  config = config_new();
 
   /* Ensure we have a proper config environment */
   if (config->category == NULL) {
