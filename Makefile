@@ -36,7 +36,7 @@ strip: burp
 install: burp doc
 	install -Dm755 burp ${DESTDIR}${PREFIX}/bin/burp
 	install -Dm644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
-	install -Dm644 burp.1 ${DESTDIR}/share/man/man1/burp.1
+	install -Dm644 burp.1 ${DESTDIR}${PREFIX}/share/man/man1/burp.1
 
 uninstall:
 	${RM} ${DESTDIR}${PREFIX}/bin/burp
