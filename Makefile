@@ -2,9 +2,9 @@
 
 VERSION   = $(shell git describe)
 
-CFLAGS   += -std=c99 -g -pedantic -Wall -Wextra -Werror ${CPPFLAGS}
-CPPFLAGS += -DVERSION=\"${VERSION}\"
-LDFLAGS  += -lcurl
+CPPFLAGS := -DVERSION=\"${VERSION}\" ${CPPFLAGS}
+CFLAGS   := -std=c99 -g -pedantic -Wall -Wextra -Werror ${CFLAGS}
+LDFLAGS  := -lcurl ${CFLAGS}
 
 PREFIX    = /local/usr
 
