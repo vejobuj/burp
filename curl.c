@@ -163,7 +163,7 @@ cleanup:
   return ret;
 }
 
-char *strip_html_tags(const char *unsanitized, size_t len) {
+static char *strip_html_tags(const char *unsanitized, size_t len) {
   int in_tag = 0;
   size_t i;
   char *ptr;
