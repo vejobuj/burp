@@ -52,8 +52,6 @@
 
 #define STARTTAG                "<p class=\"pkgoutput\">"
 #define ENDTAG                  "</p>"
-#define REGPATTERN              STARTTAG "(.+)" ENDTAG
-#define REGEX_OPTS              REG_ICASE|REG_EXTENDED|REG_NEWLINE
 
 struct write_result {
   char *memory;

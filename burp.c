@@ -42,7 +42,6 @@
 
 #define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
 #define COOKIE_SIZE 1024
-#define TARGETMAX 32
 
 /* structures */
 typedef struct __category_t {
