@@ -37,7 +37,6 @@
 
 void debug(const char*, ...);
 char *read_stdin(const char*, size_t, int);
-char *get_tmpfile(const char*);
 char *strtrim(char*);
 int touch(const char*);
 
