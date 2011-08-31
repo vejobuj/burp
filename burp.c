@@ -179,7 +179,7 @@ static int parseargs(int argc, char **argv) {
         break;
       case 'C':
         FREE(config->cookie_file);
-        config->cookie_file = strndup(optarg, PATH_MAX);
+        config->cookie_file = strdup(optarg);
         break;
       case 'k':
         config->cookie_persist = 1;
@@ -210,21 +210,27 @@ static int parseargs(int argc, char **argv) {
 
 static int read_config_file(void) {
   int ret = 0;
-  char *ptr, *xdg_config_home;
-  char config_path[PATH_MAX + 1], line[BUFSIZ];
+  char *config_path, *ptr, *xdg_config_home;
+  char line[BUFSIZ];
   FILE *fp;
 
   xdg_config_home = getenv("XDG_CONFIG_HOME");
   if (xdg_config_home) {
-    snprintf(config_path, PATH_MAX, "%s/burp/burp.conf", xdg_config_home);
+    if (asprintf(&config_path, "%s/burp/burp.conf", xdg_config_home) == -1) {
+      fprintf(stderr, "error: failed to allocate memory\n");
+      return 1;
+    }
   } else {
-    snprintf(config_path, PATH_MAX, "%s/.config/burp/burp.conf",
-      getenv("HOME"));
+    if (asprintf(&config_path, "%s/.config/burp/burp.conf", getenv("HOME")) == -1) {
+      fprintf(stderr, "error: failed to allocate memory\n");
+      return 1;
+    }
   }
 
   fp = fopen(config_path, "r");
   if (!fp) {
     debug("failed to open %s: %s\n", config_path, strerror(errno));
+    free(config_path);
     return ret;
   }
 
@@ -282,6 +288,7 @@ static int read_config_file(void) {
   }
 
   fclose(fp);
+  free(config_path);
 
   return ret;
 }
