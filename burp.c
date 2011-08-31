@@ -44,15 +44,6 @@
 #define COOKIE_SIZE 1024
 #define TARGETMAX 32
 
-/* forward decls */
-static int category_is_valid(const char*);
-static long cookie_expire_time(const char*, const char*, const char*);
-static int fn_cmp_cat (const void*, const void*);
-static int parseargs(int, char**);
-static int read_config_file(void);
-static void usage(void);
-static void usage_categories(void);
-
 /* structures */
 typedef struct __category_t {
   const char *name;
@@ -68,7 +59,14 @@ static const category_t categories[] = {
   { "system",      16 }, { "x11",         17 }, { "xfce",        18 }
 };
 
-int category_is_valid(const char *cat) {
+static int fn_cmp_cat(const void *c1, const void *c2) {
+  category_t *cat1 = (category_t*)c1;
+  category_t *cat2 = (category_t*)c2;
+
+  return strcmp(cat1->name, cat2->name);
+}
+
+static int category_is_valid(const char *cat) {
   category_t key, *res;
 
   key.name = cat;
@@ -78,7 +76,7 @@ int category_is_valid(const char *cat) {
   return res ? res->num : -1;
 }
 
-long cookie_expire_time(const char *cookie_file, const char *domain,
+static long cookie_expire_time(const char *cookie_file, const char *domain,
     const char *name) {
   FILE *fp;
   long expire;
@@ -120,14 +118,40 @@ long cookie_expire_time(const char *cookie_file, const char *domain,
   return expire;
 }
 
-int fn_cmp_cat(const void *c1, const void *c2) {
-  category_t *cat1 = (category_t*)c1;
-  category_t *cat2 = (category_t*)c2;
-
-  return strcmp(cat1->name, cat2->name);
+static void usage(void) {
+  fprintf(stderr, "burp %s\n"
+  "Usage: burp [options] targets...\n\n"
+  " Options:\n"
+  "  -h, --help                Shows this help message.\n"
+  "  -u, --user                AUR login username.\n"
+  "  -p, --password            AUR login password.\n", VERSION);
+  fprintf(stderr,
+  "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
+  "                              This will default to the current category\n"
+  "                              for pre-existing packages and 'None' for new\n"
+  "                              packages. -c help will give a list of valid\n"
+  "                              categories.\n");
+  fprintf(stderr,
+  "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
+  "                              temporary file. Useful with the -k option.\n"
+  "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
+  "                              If you specify this option, you must also provide\n"
+  "                              a path to a cookie file.\n"
+  "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
+  "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
-int parseargs(int argc, char **argv) {
+static void usage_categories(void) {
+  unsigned i;
+
+  printf("Valid categories are:\n");
+  for (i = 0; i < NUM_CATEGORIES; i++) {
+    printf("\t%s\n", categories[i].name);
+  }
+  putchar('\n');
+}
+
+static int parseargs(int argc, char **argv) {
   int opt;
   int option_index = 0;
   static struct option opts[] = {
@@ -185,7 +209,7 @@ int parseargs(int argc, char **argv) {
   return 0;
 }
 
-int read_config_file() {
+static int read_config_file(void) {
   int ret = 0;
   char *ptr, *xdg_config_home;
   char config_path[PATH_MAX + 1], line[BUFSIZ];
@@ -261,39 +285,6 @@ int read_config_file() {
   fclose(fp);
 
   return ret;
-}
-
-void usage() {
-  fprintf(stderr, "burp %s\n"
-  "Usage: burp [options] targets...\n\n"
-  " Options:\n"
-  "  -h, --help                Shows this help message.\n"
-  "  -u, --user                AUR login username.\n"
-  "  -p, --password            AUR login password.\n", VERSION);
-  fprintf(stderr,
-  "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
-  "                              This will default to the current category\n"
-  "                              for pre-existing packages and 'None' for new\n"
-  "                              packages. -c help will give a list of valid\n"
-  "                              categories.\n");
-  fprintf(stderr,
-  "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
-  "                              temporary file. Useful with the -k option.\n"
-  "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
-  "                              If you specify this option, you must also provide\n"
-  "                              a path to a cookie file.\n"
-  "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
-  "  burp also honors a config file. See burp(1) for more information.\n\n");
-}
-
-void usage_categories() {
-  unsigned i;
-
-  printf("Valid categories are:\n");
-  for (i = 0; i < NUM_CATEGORIES; i++) {
-    printf("\t%s\n", categories[i].name);
-  }
-  putchar('\n');
 }
 
 int main(int argc, char **argv) {
