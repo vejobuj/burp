@@ -51,3 +51,4 @@ config_t *config_new(void) {
   return config;
 }
 
+/* vim: set et sw=2: */

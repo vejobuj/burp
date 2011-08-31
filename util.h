@@ -42,3 +42,5 @@ char *strtrim(char*);
 int touch(const char*);
 
 #endif /* _BURP_UTIL_H */
+
+/* vim: set et sw=2: */

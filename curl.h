@@ -67,3 +67,5 @@ long aur_login(void);
 long aur_upload(const char*);
 
 #endif /* _BURP_CURL_H */
+
+/* vim: set et sw=2: */

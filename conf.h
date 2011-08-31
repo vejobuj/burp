@@ -48,3 +48,5 @@ void config_free(config_t*);
 extern config_t *config;
 
 #endif /* _BURP_CONF_H */
+
+/* vim: set et sw=2: */

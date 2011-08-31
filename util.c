@@ -137,3 +137,4 @@ int touch(const char *filename) {
   return close(fd);
 }
 
+/* vim: set et sw=2: */
