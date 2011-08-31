@@ -30,9 +30,9 @@
 #include "conf.h"
 #include "util.h"
 
-config_t *config = NULL;
+struct config_t *config = NULL;
 
-void config_free(config_t *config) {
+void config_free(struct config_t *config) {
   if (config->category && !STREQ(config->category, "None")) {
     free(config->category);
   }
@@ -43,12 +43,10 @@ void config_free(config_t *config) {
   FREE(config);
 }
 
-config_t *config_new(void) {
-  config_t *config;
+struct config_t *config_new(void) {
+  struct config_t *config;
 
-  MALLOC(config, sizeof *config, return NULL);
-
-  return config;
+  return calloc(1, sizeof(*config));
 }
 
 /* vim: set et sw=2: */
