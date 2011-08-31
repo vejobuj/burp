@@ -104,7 +104,7 @@ long aur_login(void) {
   long httpcode, ret = 0;
   CURLcode status;
   struct curl_httppost *post, *last;
-  struct curl_slist *headers;
+  struct curl_slist *headers = NULL;
   struct write_result response = { NULL, 0 };
 
   post = last = NULL;
@@ -118,7 +118,6 @@ long aur_login(void) {
         CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
   }
 
-  headers = NULL;
   headers = curl_slist_append(headers, "Expect:");
 
   curl_easy_setopt(curl, CURLOPT_URL, AUR_LOGIN_URL);
@@ -202,7 +201,7 @@ long aur_upload(const char *taurball) {
   long httpcode, ret = 1;
   CURLcode status;
   struct curl_httppost *post, *last;
-  struct curl_slist *headers;
+  struct curl_slist *headers = NULL;
   struct write_result response = { NULL, 0 };
   struct stat st;
 
@@ -234,7 +233,6 @@ long aur_upload(const char *taurball) {
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "pfile", 
       CURLFORM_FILE, fullpath, CURLFORM_END);
 
-  headers = NULL;
   headers = curl_slist_append(headers, "Expect:");
 
   curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
