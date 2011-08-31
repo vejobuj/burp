@@ -309,16 +309,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  /* Ensure we have a proper config environment */
-  if (config->category == NULL) {
-    config->category = "None";
-  } else {
+  if (config->category) {
     config->catnum = category_is_valid(config->category);
-  }
-
-  if (config->catnum < 0) {
-    usage_categories();
-    goto finish;
+    if (config->catnum < 0) {
+      usage_categories();
+      goto finish;
+    }
   }
 
   if (optind == argc) {

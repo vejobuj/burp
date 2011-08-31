@@ -223,15 +223,16 @@ long aur_upload(const char *taurball) {
     return ret;
   }
 
-  snprintf(category, 3, "%d", config->catnum);
-
   post = last = NULL;
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "pkgsubmit",
       CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
-  curl_formadd(&post, &last, CURLFORM_COPYNAME, "category",
-      CURLFORM_COPYCONTENTS, category, CURLFORM_END);
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "pfile", 
       CURLFORM_FILE, fullpath, CURLFORM_END);
+  if (config->catnum > 0 && config->category) {
+    snprintf(category, 3, "%d", config->catnum);
+    curl_formadd(&post, &last, CURLFORM_COPYNAME, "category",
+        CURLFORM_COPYCONTENTS, category, CURLFORM_END);
+  }
 
   headers = curl_slist_append(headers, "Expect:");
 

@@ -33,10 +33,7 @@
 struct config_t *config = NULL;
 
 void config_free(struct config_t *config) {
-  if (config->category && !STREQ(config->category, "None")) {
-    free(config->category);
-  }
-
+  FREE(config->category);
   FREE(config->user);
   FREE(config->password);
   FREE(config->cookie_file);
