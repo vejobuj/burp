@@ -315,6 +315,8 @@ int main(int argc, char **argv) {
       usage_categories();
       goto finish;
     }
+  } else {
+    config->catnum = 1;
   }
 
   if (optind == argc) {
