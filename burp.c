@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
     goto finish;
   }
 
-  cookie_expire = cookie_expire_time(config->cookie_file, AUR_URL_NO_PROTO, AUR_COOKIE_NAME);
+  cookie_expire = cookie_expire_time(config->cookie_file, AUR_DOMAIN, AUR_COOKIE_NAME);
   if (cookie_expire > 0) {
     if (time(NULL) < cookie_expire) {
       config->cookie_valid = 1;
