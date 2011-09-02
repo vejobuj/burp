@@ -351,7 +351,7 @@ int main(int argc, char **argv) {
   }
 
   if (!config->cookie_valid) {
-    if (config->cmdline_user || !config->user) {
+    if (!config->cmdline_user && !config->user) {
       config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
       if (!config->user || !strlen(config->user)) {
         fprintf(stderr, "error: invalid username supplied\n");
