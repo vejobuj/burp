@@ -1,0 +1,24 @@
+#compdef burp
+
+_categories() {
+	burp -c help | sed '1d;$d' | while read CAT; do
+		_wanted "AUR categories" expl "AUR categories" compadd -- $CAT
+	done
+}
+
+_burp() {
+	local context state line expl
+	local -A opt_args
+
+	_arguments \
+		"(-h --help)"{-h,--help}"[Show help]" \
+		"(-u --user)"{-u,--user}"[AUR login username]:USER:" \
+		"(-p --password)"{-p,--password}"[AUR login password]:PASSWORD:" \
+		"(-c --cat)"{-c,--cat}"[Assign the uploaded package with category CAT]:CATEGORY:_categories" \
+		"(-C --cookies)"{-C,--cookies}"[Use FILE to store cookies rather than the default temporary file]:FILE:_files" \
+		"(-k --keep-cookies)"{-k,--keep-cookies}"[Cookies will be persistent and reused for logins]" \
+		"(-v --verbose)"{-v,--verbose}"[Be more verbose. Pass twice for debug info.]" \
+		":targets:_files -g \*.src.tar.gz"
+}
+
+_burp "$@"

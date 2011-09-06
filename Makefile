@@ -22,7 +22,7 @@ burp.1: README.pod
 
 dist: clean
 	mkdir -p burp-${VERSION}
-	cp -R ${SRC} *.h README.pod bash_completion burp-${VERSION}
+	cp -R ${SRC} *.h README.pod bash_completion zsh_completion burp-${VERSION}
 	sed "s/^VERSION *.*/VERSION = ${VERSION}/" < Makefile > burp-${VERSION}/Makefile
 	tar -czf burp-${VERSION}.tar.gz burp-${VERSION}
 	${RM} -r burp-${VERSION}
@@ -36,12 +36,14 @@ strip: burp
 install: burp doc
 	install -Dm755 burp ${DESTDIR}${PREFIX}/bin/burp
 	install -Dm644 bash_completion ${DESTDIR}/etc/bash_completion.d/burp
+	install -Dm644 zsh_completion ${DESTDIR}/usr/share/zsh/site-functions/_burp
 	install -Dm644 burp.1 ${DESTDIR}${PREFIX}/share/man/man1/burp.1
 
 uninstall:
 	${RM} ${DESTDIR}${PREFIX}/bin/burp
 	${RM} ${DESTDIR}${MANPREFIX}/man1/burp.1
 	${RM} ${DESTDIR}/etc/bash_completion.d/burp
+	${RM} ${DESTDIR}/usr/share/zsh/site-functions/_burp
 
 .PHONY: all doc clean install uninstall
 
