@@ -27,8 +27,6 @@
 #ifndef _BURP_CONF_H
 #define _BURP_CONF_H
 
-#define COOKIEFILE_FORMAT  "/tmp/burp-%d.cookies"
-
 struct config_t {
   char *user;
   char *password;
