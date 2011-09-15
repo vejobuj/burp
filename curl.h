@@ -29,6 +29,7 @@
 
 #include <curl/curl.h>
 
+/* these limits are derived from the login form on the web */
 #define AUR_USER_MAX            16
 #define AUR_PASSWORD_MAX        128
 
