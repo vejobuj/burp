@@ -273,11 +273,11 @@ long aur_upload(const char *taurball) {
   }
 
   /* failboat */
-  error_start = memmem(response.memory, response.size, STARTTAG, strlen(STARTTAG));
+  error_start = memmem(response.memory, response.size, ERROR_STARTTAG, strlen(ERROR_STARTTAG));
   if (error_start) {
-    error_start += strlen(STARTTAG);
+    error_start += strlen(ERROR_STARTTAG);
     error_end = memmem(error_start, response.size - (error_start - response.memory),
-        ENDTAG, strlen(ENDTAG));
+        ERROR_ENDTAG, strlen(ERROR_ENDTAG));
     if (error_end) {
       errormsg = strip_html_tags(error_start, error_end - error_start);
       if (errormsg) {

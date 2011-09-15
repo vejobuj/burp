@@ -56,8 +56,8 @@
 
 #define AUR_LOGIN_FAIL_MSG      "Bad username or password."
 
-#define STARTTAG                "<p class=\"pkgoutput\">"
-#define ENDTAG                  "</p>"
+#define ERROR_STARTTAG          "<p class=\"pkgoutput\">"
+#define ERROR_ENDTAG            "</p>"
 
 struct write_result {
   char *memory;
