@@ -87,11 +87,15 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
     cdomain[0] = cname[0] = '\0';
     expire = 0L;
 
-    if(!(fgets(l, sizeof(l), fp))) {
+    if(!(fgets(l, COOKIE_SIZE, fp))) {
       break;
     }
 
     strtrim(l);
+
+    if (memcmp(l, "#HttpOnly_", 10) == 0) {
+      memmove(&l[0], &l[10], COOKIE_SIZE - 10);
+    }
 
     if (*l == '#' || strlen(l) == 0) {
       continue;
