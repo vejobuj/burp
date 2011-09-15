@@ -106,7 +106,7 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
       continue;
     }
 
-    if (STREQ(domain, cdomain) && STREQ(name, cname)) {
+    if (strcmp(domain, cdomain) == 0 && strcmp(name, cname) == 0) {
       debug("cookie found (expires %ld)\n", expire);
       break;
     }
@@ -251,17 +251,17 @@ static int read_config_file(void) {
     strtrim(key);
     strtrim(ptr);
 
-    if (STREQ(key, "User")) {
+    if (strcmp(key, "User") == 0) {
       if (config->user == NULL) {
         config->user = strndup(ptr, AUR_USER_MAX);
         debug("using username: %s\n", config->user);
       }
-    } else if (STREQ(key, "Password")) {
+    } else if (strcmp(key, "Password") == 0) {
       if (config->password == NULL) {
         config->password = strndup(ptr, AUR_PASSWORD_MAX);
         debug("using password from config file.\n");
       }
-    } else if (STREQ(key, "Cookies")) {
+    } else if (strcmp(key, "Cookies") == 0) {
       if (config->cookie_file == NULL) {
         wordexp_t p;
         if (wordexp(ptr, &p, 0) == 0) {
@@ -278,7 +278,7 @@ static int read_config_file(void) {
           break;
         }
       }
-    } else if (STREQ(key, "Persist")) {
+    } else if (strcmp(key, "Persist") == 0) {
       config->cookie_persist = 1;
     } else {
       fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
