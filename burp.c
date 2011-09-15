@@ -27,12 +27,7 @@
 #define _GNU_SOURCE
 #include <errno.h>
 #include <getopt.h>
-#include <limits.h>
-#include <signal.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <termios.h>
 #include <unistd.h>
 #include <wordexp.h>
 
