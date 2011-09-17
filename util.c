@@ -32,7 +32,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <termios.h>
-#include <time.h>
 #include <unistd.h>
 
 #include "conf.h"
@@ -40,23 +39,14 @@
 
 void debug(const char *format, ...) {
   va_list args;
-  time_t t;
-  struct tm *tmp;
-  char timestr[10] = { 0 };
 
   if (config->verbose < 2) {
     return;
   }
 
-  t = time(NULL);
-  tmp = localtime(&t);
-  strftime(timestr, 9, "%H:%M:%S", tmp);
-  timestr[8] = '\0';
-
-  printf("[%s] debug: ", timestr);
-
+  fprintf(stderr, "debug: ");
   va_start(args, format);
-  vfprintf(stdout, format, args);
+  vfprintf(stderr, format, args);
   va_end(args);
 }
 
