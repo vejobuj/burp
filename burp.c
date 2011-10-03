@@ -97,7 +97,7 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
       memmove(&l[0], &l[10], COOKIE_SIZE - 10);
     }
 
-    if (*l == '#' || strlen(l) == 0) {
+    if (*l == '#' || *l == '\0') {
       continue;
     }
 
@@ -235,9 +235,10 @@ static int read_config_file(void) {
 
   while (fgets(line, BUFSIZ, fp)) {
     char *key;
-    strtrim(line);
+    size_t linelen;
 
-    if (line[0] == '#' || strlen(line) == 0) {
+    linelen = strtrim(line);
+    if (!linelen || line[0] == '#') {
       continue;
     }
 

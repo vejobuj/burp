@@ -36,7 +36,7 @@
 
 void debug(const char*, ...);
 char *read_stdin(const char*, size_t, int);
-char *strtrim(char*);
+size_t strtrim(char*);
 int touch(const char*);
 
 #endif /* _BURP_UTIL_H */

@@ -82,34 +82,32 @@ char *read_stdin(const char *prompt, size_t maxlen, int echo) {
   return buf;
 }
 
-char *strtrim(char *str) {
-  char *pch = str;
+size_t strtrim(char *str)
+{
+  char *left = str, *right;
 
-  if (str == NULL || *str == '\0') {
-    return str;
+  if(!str || *str == '\0') {
+    return 0;
   }
 
-  while (isspace(*pch)) {
-    pch++;
+  while(isspace((unsigned char)*left)) {
+    left++;
+  }
+  if(left != str) {
+    memmove(str, left, (strlen(left) + 1));
   }
 
-  if (pch != str) {
-    memmove(str, pch, (strlen(pch) + 1));
+  if(*str == '\0') {
+    return 0;
   }
 
-  if (*str == '\0') {
-    return str;
+  right = (char*)rawmemchr(str, '\0') - 1;
+  while(isspace((unsigned char)*right)) {
+    right--;
   }
+  *++right = '\0';
 
-  pch = (str + strlen(str) - 1);
-
-  while (isspace(*pch)) {
-    pch--;
-  }
-
-  *++pch = '\0';
-
-  return str;
+  return right - left;
 }
 
 int touch(const char *filename) {
