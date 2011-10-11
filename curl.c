@@ -146,7 +146,7 @@ long aur_login(void) {
   debug("%s\n", response.memory);
 
   if (memmem(response.memory, response.size, AUR_LOGIN_FAIL_MSG,
-        sizeof(AUR_LOGIN_FAIL_MSG))) {
+        strlen(AUR_LOGIN_FAIL_MSG))) {
     fprintf(stderr, "Error: %s\n", AUR_LOGIN_FAIL_MSG);
     ret = 1L; /* Reuse an uncommon curl error */
   }
@@ -273,11 +273,11 @@ long aur_upload(const char *taurball) {
   }
 
   /* failboat */
-  error_start = memmem(response.memory, response.size, ERROR_STARTTAG, sizeof(ERROR_STARTTAG));
+  error_start = memmem(response.memory, response.size, ERROR_STARTTAG, strlen(ERROR_STARTTAG));
   if (error_start) {
-    error_start += sizeof(ERROR_STARTTAG);
+    error_start += strlen(ERROR_STARTTAG);
     error_end = memmem(error_start, response.size - (error_start - response.memory),
-        ERROR_ENDTAG, sizeof(ERROR_ENDTAG));
+        ERROR_ENDTAG, strlen(ERROR_ENDTAG));
     if (error_end) {
       errormsg = strip_html_tags(error_start, error_end - error_start);
       if (errormsg) {
