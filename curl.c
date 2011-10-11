@@ -281,7 +281,7 @@ long aur_upload(const char *taurball) {
     if (error_end) {
       errormsg = strip_html_tags(error_start, error_end - error_start);
       if (errormsg) {
-        fprintf(stderr, "error: %s\n", errormsg);
+        fprintf(stderr, "[AUR] %s\n", errormsg);
         FREE(errormsg);
       }
       goto cleanup;
