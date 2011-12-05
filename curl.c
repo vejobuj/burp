@@ -207,18 +207,18 @@ long aur_upload(const char *taurball) {
   struct write_result response = { NULL, 0 };
   int fd;
 
-  do {
-    fd = open(taurball, O_DIRECTORY|O_RDONLY);
-  } while (errno == EINTR);
-  if (fd > 0) {
-    fprintf(stderr, "error: target is not a file: %s\n", taurball);
-    close(fd);
-    return ret;
-  } else if (errno != ENOTDIR) {
-    fprintf(stderr, "error: failed to read `%s': %s\n", taurball, strerror(errno));
-    return ret;
+  OPEN(fd, taurball, O_DIRECTORY|O_RDONLY);
+  switch (errno) {
+    case ENOTDIR:
+      break;
+    case 0:
+      fprintf(stderr, "error: target is not a file: %s\n", taurball);
+      CLOSE(fd);
+      return ret;
+    default:
+      fprintf(stderr, "error: failed to read `%s': %s\n", taurball, strerror(errno));
+      return ret;
   }
-  close(fd);
 
   display_name = strrchr(taurball, '/');
   if (display_name) {

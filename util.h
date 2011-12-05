@@ -34,6 +34,9 @@
 #define MALLOC(p, s, action) do { p = calloc(1, s); if(!p) { ALLOC_FAIL(s); action; } } while(0)
 #define FREE(x) do { free((void*)x); x = NULL; } while(0)
 
+#define OPEN(fd, path, flags) do { fd = open(path, flags); } while(fd == -1 && errno == EINTR)
+#define CLOSE(fd) do { int rc; do { rc = close(fd); } while(rc == -1 && errno == EINTR); } while(0)
+
 void debug(const char*, ...);
 char *read_stdin(const char*, size_t, int);
 size_t strtrim(char*);
