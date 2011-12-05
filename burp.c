@@ -82,7 +82,9 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
   }
 
   for (;;) {
-    char l[COOKIE_SIZE];
+    char cookie[COOKIE_SIZE];
+    char *l = &cookie[0];
+    size_t len;
 
     cdomain[0] = cname[0] = '\0';
     expire = 0L;
@@ -91,10 +93,13 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
       break;
     }
 
-    strtrim(l);
+    len = strtrim(l);
+    if (len == 0) {
+      continue;
+    }
 
     if (memcmp(l, "#HttpOnly_", 10) == 0) {
-      memmove(&l[0], &l[10], COOKIE_SIZE - 10);
+      l += 10;
     }
 
     if (*l == '#' || *l == '\0') {
