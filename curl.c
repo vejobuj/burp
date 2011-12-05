@@ -25,10 +25,11 @@
  */
 
 #define _GNU_SOURCE
-#include <regex.h>
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "conf.h"
@@ -195,40 +196,41 @@ static char *strip_html_tags(const char *unsanitized, size_t len) {
 }
 
 long aur_upload(const char *taurball) {
-  char *errormsg, *fullpath, *effective_url;
+  char *errormsg, *effective_url;
   char category[3], errbuffer[CURL_ERROR_SIZE] = {0};
-  const char *error_start, *error_end, *redir_page = NULL;
+  const char *display_name, *error_start, *error_end, *redir_page = NULL;
   const char * const packages_php = "packages.php";
   long httpcode, ret = 1;
   CURLcode status;
-  struct curl_httppost *post, *last;
+  struct curl_httppost *post = NULL, *last = NULL;
   struct curl_slist *headers = NULL;
   struct write_result response = { NULL, 0 };
-  struct stat st;
+  int fd;
 
-  fullpath = realpath(taurball, NULL);
-  if (fullpath == NULL) {
-    fprintf(stderr, "Error uploading file '%s': ", taurball);
-    perror("");
+  do {
+    fd = open(taurball, O_DIRECTORY|O_RDONLY);
+  } while (errno == EINTR);
+  if (fd > 0) {
+    fprintf(stderr, "error: target is not a file: %s\n", taurball);
+    close(fd);
+    return ret;
+  } else if (errno != ENOTDIR) {
+    fprintf(stderr, "error: failed to read `%s': %s\n", taurball, strerror(errno));
     return ret;
   }
+  close(fd);
 
-  /* make sure the resolved path is a regular file */
-  if (stat(fullpath, &st) != 0) {
-    perror("stat");
-    return ret;
+  display_name = strrchr(taurball, '/');
+  if (display_name) {
+    display_name++;
+  } else {
+    display_name = taurball;
   }
 
-  if (!S_ISREG(st.st_mode)) {
-    fprintf(stderr, "skipping target `%s\': not a file\n", taurball);
-    return ret;
-  }
-
-  post = last = NULL;
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "pkgsubmit",
       CURLFORM_COPYCONTENTS, "1", CURLFORM_END);
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "pfile", 
-      CURLFORM_FILE, fullpath, CURLFORM_END);
+      CURLFORM_FILE, taurball, CURLFORM_END);
   snprintf(category, 3, "%d", config->catnum);
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "category",
       CURLFORM_COPYCONTENTS, category, CURLFORM_END);
@@ -242,18 +244,13 @@ long aur_upload(const char *taurball) {
   curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuffer);
 
   if (config->verbose) {
-    printf("Uploading taurball: %s\n", fullpath);
+    printf("Uploading taurball: %s\n", display_name);
   }
 
   status = curl_easy_perform(curl);
-
-  curl_slist_free_all(headers);
-  curl_formfree(post);
-  free(fullpath);
-
   if (status != CURLE_OK) {
     fprintf(stderr, "error: unable to send data to %s: %s\n", AUR_SUBMIT_URL, errbuffer);
-    return ret;
+    goto cleanup;
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
@@ -268,7 +265,7 @@ long aur_upload(const char *taurball) {
   if (effective_url) {
     redir_page = strrchr(effective_url, '/') + 1;
     if (strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
-      printf("%s has been uploaded successfully.\n", taurball);
+      printf("%s has been uploaded successfully.\n", display_name);
       ret = 0;
       goto cleanup;
     }
@@ -293,6 +290,9 @@ long aur_upload(const char *taurball) {
   fprintf(stderr, "error: unexpected failure uploading `%s'\n", taurball);
 
 cleanup:
+  curl_slist_free_all(headers);
+  curl_formfree(post);
+
   free(response.memory);
 
   return ret;
