@@ -338,10 +338,6 @@ int main(int argc, char **argv) {
     read_config_file();
   }
 
-  if (config->cookie_persist && !config->cookie_file) {
-    fprintf(stderr, "warning: ignoring --persist without path to cookie file\n");
-  }
-
   if (cookie_setup() != 0) {
     goto finish;
   }

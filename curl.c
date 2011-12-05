@@ -70,11 +70,13 @@ int curl_init() {
 }
 
 int cookie_setup(void) {
-
   /* enable cookie management for this session */
   curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "");
 
   if (!config->cookie_file) {
+    if (config->cookie_persist) {
+      fprintf(stderr, "warning: ignoring --persist without path to cookie file\n");
+    }
     return 0;
   }
 
