@@ -26,9 +26,9 @@
 
 #define _GNU_SOURCE
 #include <errno.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -205,19 +205,17 @@ long aur_upload(const char *taurball) {
   struct curl_httppost *post = NULL, *last = NULL;
   struct curl_slist *headers = NULL;
   struct write_result response = { NULL, 0 };
-  int fd;
+  struct stat st;
 
-  OPEN(fd, taurball, O_DIRECTORY|O_RDONLY);
-  switch (errno) {
-    case ENOTDIR:
-      break;
-    case 0:
-      fprintf(stderr, "error: target is not a file: %s\n", taurball);
-      CLOSE(fd);
-      return ret;
-    default:
-      fprintf(stderr, "error: failed to read `%s': %s\n", taurball, strerror(errno));
-      return ret;
+  /* make sure the resolved path is a regular file */
+  if (stat(taurball, &st) != 0) {
+    fprintf(stderr, "error: failed to stat `%s': %s\n", taurball, strerror(errno));
+    return ret;
+  }
+
+  if (!S_ISREG(st.st_mode)) {
+    fprintf(stderr, "error: `%s\' is not a file\n", taurball);
+    return ret;
   }
 
   display_name = strrchr(taurball, '/');
