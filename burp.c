@@ -98,7 +98,7 @@ static long cookie_expire_time(const char *cookie_file, const char *domain,
       continue;
     }
 
-    if (memcmp(l, "#HttpOnly_", 10) == 0) {
+    if (strncmp(l, "#HttpOnly_", 10) == 0) {
       l += 10;
     }
 
