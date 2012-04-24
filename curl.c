@@ -171,7 +171,7 @@ static char *strip_html_tags(const char *unsanitized, size_t len) {
   char *ptr;
   char *sanitized;
 
-  MALLOC(sanitized, len, return NULL);
+  MALLOC(sanitized, len + 1, return NULL);
   ptr = sanitized;
 
   for (i = 0; i < len; i++) {
