@@ -66,10 +66,12 @@ struct write_result {
 };
 
 int cookie_setup(void);
+char *get_csrf_token(void);
 int curl_init(void);
 void curl_cleanup(void);
 long aur_login(void);
-long aur_upload(const char*);
+long aur_upload(const char*, const char*);
+void prime_cookielist(void);
 
 #endif /* _BURP_CURL_H */
 

@@ -102,6 +102,28 @@ void curl_cleanup() {
   curl_global_cleanup();
 }
 
+char *get_csrf_token() {
+  struct curl_slist *i, *cookielist = NULL;
+  char cname[256], token[256];
+
+  curl_easy_getinfo(curl, CURLINFO_COOKIELIST, &cookielist);
+  for (i = cookielist; i; i = i->next) {
+    int r = sscanf(i->data, "%*s\t%*s\t%*s\t%*s\t%*s\t%s\t%s", cname, token);
+    if (r != 2) {
+      continue;
+    }
+    if (strcmp(cname, "AURSID") != 0) {
+      continue;
+    }
+    debug("AURSID cookie found with value: %s\n", token);
+    break;
+  }
+
+  curl_slist_free_all(cookielist);
+
+  return strdup(token);
+}
+
 long aur_login(void) {
   long httpcode, ret = 0;
   CURLcode status;
@@ -195,7 +217,12 @@ static char *strip_html_tags(const char *unsanitized, size_t len) {
   return sanitized;
 }
 
-long aur_upload(const char *taurball) {
+void prime_cookielist() {
+  curl_easy_setopt(curl, CURLOPT_URL, "file:///dev/null");
+  curl_easy_perform(curl);
+}
+
+long aur_upload(const char *taurball, const char *csrf_token) {
   char *errormsg, *effective_url;
   char category[3], errbuffer[CURL_ERROR_SIZE] = {0};
   const char *display_name, *error_start, *error_end, *redir_page = NULL;
@@ -232,6 +259,8 @@ long aur_upload(const char *taurball) {
   snprintf(category, 3, "%d", config->catnum);
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "category",
       CURLFORM_COPYCONTENTS, category, CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, "token",
+      CURLFORM_COPYCONTENTS, csrf_token);
 
   headers = curl_slist_append(headers, "Expect:");
 

@@ -367,10 +367,28 @@ int main(int argc, char **argv) {
   }
 
   if (config->cookie_valid || aur_login() == 0) {
-    ret = 0;
-    while (optind < argc) {
-      ret += aur_upload(argv[optind++]);
+    char *csrf_token;
+
+    /* booo, stupid hacks. curl doesn't prime curl_slist of cookies
+     * we want via CURLINFO_COOKIELIST until we call perform at least
+     * once. */
+    prime_cookielist();
+
+    csrf_token = get_csrf_token();
+    if (csrf_token == NULL) {
+      fprintf(stderr, "failed to obtain CSRF token for uploading\n");
+      goto finish;
     }
+
+    ret = 0;
+
+    while (optind < argc) {
+      int r = aur_upload(argv[optind++], csrf_token);
+      if (r != 0) {
+        ret = r;
+      }
+    }
+    free(csrf_token);
   }
 
 finish:
