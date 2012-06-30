@@ -39,7 +39,7 @@
 static CURL *curl;
 
 static size_t write_response(void *ptr, size_t size, size_t nmemb, void *stream) {
-  struct write_result *mem = (struct write_result*)stream;
+  struct write_result *mem = stream;
   size_t realsize = nmemb * size;
 
   mem->memory = realloc(mem->memory, mem->size + realsize + 1);
