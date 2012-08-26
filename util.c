@@ -111,16 +111,15 @@ size_t strtrim(char *str)
 }
 
 int touch(const char *filename) {
-  int fd;
-
-  fd = open(filename, O_WRONLY | O_CREAT | O_NONBLOCK | O_NOCTTY,
-            S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  int fd = open(filename, O_WRONLY|O_CREAT|O_CLOEXEC|O_NOCTTY, 0644);
 
   if (fd == -1) {
     return 1;
   }
 
-  return close(fd);
+  close(fd);
+
+  return 0;
 }
 
 /* vim: set et sw=2: */
