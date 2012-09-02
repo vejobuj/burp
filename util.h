@@ -33,6 +33,7 @@
 #define ALLOC_FAIL(s) do { fprintf(stderr, "could not allocate %zd bytes\n", s); } while(0)
 #define MALLOC(p, s, action) do { p = malloc(s); if(!p) { ALLOC_FAIL(s); action; } } while(0)
 #define FREE(x) do { free((void*)x); x = NULL; } while(0)
+#define ARRAY_SIZE(x) (sizeof(x)/sizeof(x[0]))
 
 void debug(const char*, ...);
 char *read_stdin(const char*, size_t, int);

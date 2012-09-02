@@ -35,7 +35,6 @@
 #include "curl.h"
 #include "util.h"
 
-#define NUM_CATEGORIES (sizeof(categories)/sizeof(categories[0]))
 #define COOKIE_SIZE 1024
 
 /* structures */
@@ -65,7 +64,8 @@ static int category_is_valid(const char *cat) {
 
   key.name = cat;
 
-  res = bsearch(&key, categories, NUM_CATEGORIES, sizeof(struct category_t), fn_cmp_cat);
+  res = bsearch(&key, categories, ARRAY_SIZE(categories),
+      sizeof(struct category_t), fn_cmp_cat);
 
   return res ? res->num : -1;
 }
@@ -148,7 +148,7 @@ static void usage_categories(void) {
   unsigned i;
 
   printf("Valid categories are:\n");
-  for (i = 0; i < NUM_CATEGORIES; i++) {
+  for (i = 0; i < ARRAY_SIZE(categories); i++) {
     printf("\t%s\n", categories[i].name);
   }
   putchar('\n');
