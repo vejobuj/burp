@@ -34,19 +34,19 @@
 #define AUR_PASSWORD_MAX        128
 
 #ifndef AUR_PROTO
-#  define AUR_PROTO               "https://"
+#define AUR_PROTO               "https://"
 #endif
 
 #ifndef AUR_DOMAIN
-#  define AUR_DOMAIN              "aur.archlinux.org"
+#define AUR_DOMAIN              "aur.archlinux.org"
 #endif
 
 #ifndef AUR_LOGIN_URL
-#  define AUR_LOGIN_URL           AUR_PROTO AUR_DOMAIN "/"
+#define AUR_LOGIN_URL           AUR_PROTO AUR_DOMAIN "/login/"
 #endif
 
 #ifndef AUR_SUBMIT_URL
-#  define AUR_SUBMIT_URL          AUR_PROTO AUR_DOMAIN "/pkgsubmit.php"
+#define AUR_SUBMIT_URL          AUR_PROTO AUR_DOMAIN "/submit/"
 #endif
 
 #define AUR_COOKIE_NAME         "AURSID"

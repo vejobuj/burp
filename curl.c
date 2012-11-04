@@ -65,7 +65,7 @@ int curl_init() {
   debug("initializing curl\n");
 
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
+  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
   return 0;
 }
@@ -130,16 +130,21 @@ long aur_login(void) {
   struct curl_httppost *post, *last;
   struct curl_slist *headers = NULL;
   struct write_result response = { NULL, 0 };
+  const char *persist = config->cookie_persist ? "on" : "";
 
   post = last = NULL;
   curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_LOGIN_FIELD,
       CURLFORM_COPYCONTENTS, config->user, CURLFORM_END);
   curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_PASSWD_FIELD,
       CURLFORM_COPYCONTENTS, config->password, CURLFORM_END);
+  curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
+      CURLFORM_COPYCONTENTS, persist, CURLFORM_END);
 
-  if (config->cookie_persist) {
-    curl_formadd(&post, &last, CURLFORM_COPYNAME, AUR_REMEMBERME_FIELD,
-        CURLFORM_COPYCONTENTS, "on", CURLFORM_END);
+  if (config->verbose) {
+    printf("submitting form:\n");
+    printf("  config->user=%s\n", config->user);
+    printf("  config->password=%s\n", config->password ? "--redacted--" : "");
+    printf("  config->rememberme=%s\n", persist);
   }
 
   headers = curl_slist_append(headers, "Expect:");
@@ -225,8 +230,7 @@ void prime_cookielist() {
 long aur_upload(const char *taurball, const char *csrf_token) {
   char *errormsg, *effective_url;
   char category[3], errbuffer[CURL_ERROR_SIZE] = {0};
-  const char *display_name, *error_start, *error_end, *redir_page = NULL;
-  const char * const packages_php = "packages.php";
+  const char *display_name, *error_start, *error_end;
   long httpcode, ret = 1;
   CURLcode status;
   struct curl_httppost *post = NULL, *last = NULL;
@@ -262,6 +266,14 @@ long aur_upload(const char *taurball, const char *csrf_token) {
   curl_formadd(&post, &last, CURLFORM_COPYNAME, "token",
       CURLFORM_COPYCONTENTS, csrf_token);
 
+  if (config->verbose) {
+    printf("submitting form:\n");
+    printf("  pkgsubmit=1\n");
+    printf("  prfile=%s\n", taurball);
+    printf("  category=%s\n", category);
+    printf("  token=%s\n", csrf_token);
+  }
+
   headers = curl_slist_append(headers, "Expect:");
 
   curl_easy_setopt(curl, CURLOPT_URL, AUR_SUBMIT_URL);
@@ -290,8 +302,9 @@ long aur_upload(const char *taurball, const char *csrf_token) {
 
   curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effective_url);
   if (effective_url) {
-    redir_page = strrchr(effective_url, '/') + 1;
-    if (strncmp(redir_page, packages_php, strlen(packages_php)) == 0) {
+    /* TODO: this check could probably be better. it only ensures that we've
+     * been redirected to _some_ packages page. */
+    if (strstr(effective_url, "/packages/")) {
       printf("%s has been uploaded successfully.\n", display_name);
       ret = 0;
       goto cleanup;
