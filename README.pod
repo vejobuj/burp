@@ -86,8 +86,8 @@ Persist<br/>
 =end html
 
 These should all be self explanatory. Comments, if desired, can be specified
-with a #.  Command line options will always take precedence over options specified
-in the config file.
+by starting a line with a #.  Command line options will always take precedence
+over options specified in the config file.
 
 
 =head1 AUTHOR

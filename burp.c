@@ -247,10 +247,6 @@ static int read_config_file(void) {
       continue;
     }
 
-    if ((ptr = strchr(line, '#'))) {
-      *ptr = '\0';
-    }
-
     key = ptr = line;
     strsep(&ptr, "=");
     strtrim(key);
