@@ -65,7 +65,6 @@ int curl_init() {
   debug("initializing curl\n");
 
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response);
-  curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
   return 0;
 }
@@ -167,7 +166,7 @@ long aur_login(void) {
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
-  if (httpcode != 200) {
+  if (httpcode >= 400) {
     fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
     ret = httpcode;
     goto cleanup;
@@ -239,7 +238,7 @@ long aur_upload(const char *taurball, const char *csrf_token) {
   struct stat st;
 
   /* make sure the resolved path is a regular file */
-  if (stat(taurball, &st) != 0) {
+  if (stat(taurball, &st) < 0) {
     fprintf(stderr, "error: failed to stat `%s': %s\n", taurball, strerror(errno));
     return ret;
   }
@@ -293,18 +292,16 @@ long aur_upload(const char *taurball, const char *csrf_token) {
   }
 
   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpcode);
-  if (httpcode != 200) {
+  if (httpcode >= 400) {
     fprintf(stderr, "error: server responded with HTTP %ld\n", httpcode);
     goto cleanup;
   }
 
   debug("%s\n", response.memory);
 
-  curl_easy_getinfo(curl, CURLINFO_EFFECTIVE_URL, &effective_url);
+  curl_easy_getinfo(curl, CURLINFO_REDIRECT_URL, &effective_url);
   if (effective_url) {
-    /* TODO: this check could probably be better. it only ensures that we've
-     * been redirected to _some_ packages page. */
-    if (strstr(effective_url, "/packages/")) {
+    if (strncmp(effective_url, "/packages/", strlen("/packages/"))) {
       printf("%s has been uploaded successfully.\n", display_name);
       ret = 0;
       goto cleanup;
