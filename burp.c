@@ -49,7 +49,8 @@ static const struct category_t categories[] = {
   { "i18n",         8 }, { "kde",          9 }, { "kernels",     19 },
   { "lib",         10 }, { "modules",     11 }, { "multimedia",  12 },
   { "network",     13 }, { "office",      14 }, { "science",     15 },
-  { "system",      16 }, { "x11",         17 }, { "xfce",        18 }
+  { "system",      16 }, { "x11",         17 }, { "xfce",        18 },
+  { "fonts",       20 }
 };
 
 static int fn_cmp_cat(const void *c1, const void *c2) {
