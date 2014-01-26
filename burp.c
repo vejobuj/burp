@@ -327,7 +327,7 @@ int main(int argc, char **argv) {
   }
 
   /* We can't read the config file without having verbosity set, but the
-   * command line options need to take precedence over the config.  file.
+   * command line options need to take precedence over the config file.
    * Therefore, if ((user && pass) || cookie file) is supplied on the command
    * line, we won't read the config file.
    */
