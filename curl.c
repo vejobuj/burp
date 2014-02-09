@@ -268,7 +268,7 @@ long aur_upload(const char *taurball, const char *csrf_token) {
   if (config->verbose) {
     printf("submitting form:\n");
     printf("  pkgsubmit=1\n");
-    printf("  prfile=%s\n", taurball);
+    printf("  pfile=%s\n", taurball);
     printf("  category=%s\n", category);
     printf("  token=%s\n", csrf_token);
   }
