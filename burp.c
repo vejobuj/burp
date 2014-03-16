@@ -44,13 +44,25 @@ struct category_t {
 };
 
 static const struct category_t categories[] = {
-  { "daemons",      2 }, { "devel",        3 }, { "editors",      4 },
-  { "emulators",    5 }, { "games",        6 }, { "gnome",        7 },
-  { "i18n",         8 }, { "kde",          9 }, { "kernels",     19 },
-  { "lib",         10 }, { "modules",     11 }, { "multimedia",  12 },
-  { "network",     13 }, { "office",      14 }, { "science",     15 },
-  { "system",      16 }, { "x11",         17 }, { "xfce",        18 },
-  { "fonts",       20 }
+  { "daemons",      2 },
+  { "devel",        3 },
+  { "editors",      4 },
+  { "emulators",    5 },
+  { "fonts",       20 },
+  { "games",        6 },
+  { "gnome",        7 },
+  { "i18n",         8 },
+  { "kde",          9 },
+  { "kernels",     19 },
+  { "lib",         10 },
+  { "modules",     11 },
+  { "multimedia",  12 },
+  { "network",     13 },
+  { "office",      14 },
+  { "science",     15 },
+  { "system",      16 },
+  { "x11",         17 },
+  { "xfce",        18 },
 };
 
 static int fn_cmp_cat(const void *c1, const void *c2) {
