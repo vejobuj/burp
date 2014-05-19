@@ -1,137 +1,202 @@
-/* Copyright (c) 2010-2011 Dave Reisner
- *
- * burp.c
- *
- * Permission is hereby granted, free of charge, to any person
- * obtaining a copy of this software and associated documentation
- * files (the "Software"), to deal in the Software without
- * restriction, including without limitation the rights to use,
- * copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following
- * conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- * OTHER DEALINGS IN THE SOFTWARE.
- */
-
-#define _GNU_SOURCE
+#include <ctype.h>
 #include <errno.h>
 #include <getopt.h>
+#include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <string.h>
 #include <wordexp.h>
 
-#include "conf.h"
-#include "curl.h"
+#include "aur.h"
 #include "util.h"
 
-#define COOKIE_SIZE 1024
-
-/* structures */
 struct category_t {
   const char *name;
-  int num;
+  const char *id;
 };
 
+/* This list must be sorted */
 static const struct category_t categories[] = {
-  { "daemons",      2 },
-  { "devel",        3 },
-  { "editors",      4 },
-  { "emulators",    5 },
-  { "fonts",       20 },
-  { "games",        6 },
-  { "gnome",        7 },
-  { "i18n",         8 },
-  { "kde",          9 },
-  { "kernels",     19 },
-  { "lib",         10 },
-  { "modules",     11 },
-  { "multimedia",  12 },
-  { "network",     13 },
-  { "office",      14 },
-  { "science",     15 },
-  { "system",      16 },
-  { "x11",         17 },
-  { "xfce",        18 },
+  { "daemons",      "2" },
+  { "devel",        "3" },
+  { "editors",      "4" },
+  { "emulators",    "5" },
+  { "fonts",       "20" },
+  { "games",        "6" },
+  { "gnome",        "7" },
+  { "i18n",         "8" },
+  { "kde",          "9" },
+  { "kernels",     "19" },
+  { "lib",         "10" },
+  { "modules",     "11" },
+  { "multimedia",  "12" },
+  { "network",     "13" },
+  { "office",      "14" },
+  { "science",     "15" },
+  { "system",      "16" },
+  { "x11",         "17" },
+  { "xfce",        "18" },
 };
 
-static int fn_cmp_cat(const void *c1, const void *c2) {
-  struct category_t *cat1 = (struct category_t*)c1;
-  struct category_t *cat2 = (struct category_t*)c2;
+static char *arg_domain = "aur.archlinux.org";
+static char *arg_username;
+static char *arg_password;
+static char *arg_cookiefile;
+static const char *arg_category = "1";
+static bool arg_persist_cookies;
 
-  return strcmp(cat1->name, cat2->name);
+static int category_compare(const void *a, const void *b) {
+  const struct category_t *left = a;
+  const struct category_t *right = b;
+  return strcmp(left->name, right->name);
 }
 
-static int category_is_valid(const char *cat) {
-  struct category_t key, *res;
+static const char *category_validate(const char *cat) {
+  struct category_t key = { cat, NULL };
+  struct category_t *res;
 
-  key.name = cat;
+  res = bsearch(&key, categories, ARRAYSIZE(categories),
+      sizeof(struct category_t), category_compare);
 
-  res = bsearch(&key, categories, ARRAY_SIZE(categories),
-      sizeof(struct category_t), fn_cmp_cat);
-
-  return res ? res->num : -1;
+  return res ? res->id : NULL;
 }
 
-static long cookie_expire_time(const char *cookie_file, const char *domain,
-    const char *name) {
-  FILE *fp;
-  long expire;
-  char cdomain[256], cname[256];
+static char *find_config_file(void) {
+  char *var, *out;
 
-  fp = fopen(cookie_file, "r");
-  if (!fp) {
-    return 0L;
+  var = getenv("XDG_CONFIG_HOME");
+  if (var) {
+    if (asprintf(&out, "%s/burp/burp.conf", var) < 0) {
+      fprintf(stderr, "error: failed to allocate memory\n");
+      return NULL;
+    }
+    return out;
   }
 
-  for (;;) {
-    char cookie[COOKIE_SIZE];
-    char *l = &cookie[0];
+  var = getenv("HOME");
+  if (var) {
+    if (asprintf(&out, "%s/.config/burp/burp.conf", var) < 0){
+      fprintf(stderr, "error: failed to allocate memory\n");
+      return NULL;
+    }
+    return out;
+  }
+
+  return NULL;
+}
+
+
+static char *shell_expand(const char *in) {
+  wordexp_t wexp;
+  char *out = NULL;
+
+  if (wordexp(in, &wexp, WRDE_NOCMD) < 0)
+    return NULL;
+
+  out = strdup(wexp.we_wordv[0]);
+  wordfree(&wexp);
+  if (out == NULL)
+    return NULL;
+
+  return out;
+}
+
+static size_t strtrim(char *str) {
+  char *left = str, *right;
+
+  if (!str || *str == '\0')
+    return 0;
+
+  while (isspace((unsigned char)*left))
+    left++;
+
+  if (left != str) {
+    memmove(str, left, (strlen(left) + 1));
+    left = str;
+  }
+
+  if (*str == '\0')
+    return 0;
+
+  right = (char*)rawmemchr(str, '\0') - 1;
+  while (isspace((unsigned char)*right))
+    right--;
+
+  *++right = '\0';
+
+  return right - left;
+}
+
+static int read_config_file(void) {
+  _cleanup_fclose_ FILE *fp = NULL;
+  char *config_path = NULL;
+  char line[BUFSIZ];
+  int lineno = 0;
+
+  config_path = find_config_file();
+  if (config_path == NULL) {
+    fprintf(stderr, "warning: unable to determine location of config file. "
+       "Skipping.\n");
+    return 0;
+  }
+
+  fp = fopen(config_path, "r");
+  if (fp == NULL) {
+    if (errno != ENOENT) {
+      fprintf(stderr, "error: failed to open %s: %s\n", config_path,
+          strerror(errno));
+      return -errno;
+    }
+
+    /* ignore error when file isn't found */
+    return 0;
+  }
+
+  while (fgets(line, sizeof(line), fp) != NULL) {
+    char *key, *value;
     size_t len;
 
-    cdomain[0] = cname[0] = '\0';
-    expire = 0L;
+    ++lineno;
 
-    if(!(fgets(l, COOKIE_SIZE, fp))) {
-      break;
-    }
-
-    len = strtrim(l);
-    if (len == 0) {
+    len = strtrim(line);
+    if (len == 0 || line[0] == '#')
       continue;
-    }
 
-    if (strncmp(l, "#HttpOnly_", 10) == 0) {
-      l += 10;
-    }
+    key = value = line;
+    strsep(&value, "=");
+    strtrim(key);
+    strtrim(value);
 
-    if (*l == '#' || *l == '\0') {
-      continue;
-    }
-
-    if (sscanf(l, "%s\t%*s\t%*s\t%*s\t%ld\t%s\t%*s", cdomain, &expire, cname) != 3) {
-      continue;
-    }
-
-    if (strcmp(domain, cdomain) == 0 && strcmp(name, cname) == 0) {
-      debug("cookie found (expires %ld)\n", expire);
-      break;
+    if (streq(key, "User")) {
+      char *v = strdup(value);
+      if (v == NULL)
+        fprintf(stderr, "error: failed to allocate memory\n");
+      else
+        arg_username = v;
+    } else if (streq(key, "Password")) {
+      char *v = strdup(value);
+      if (v == NULL)
+        fprintf(stderr, "error: failed to allocate memory\n");
+      else
+        arg_password = v;
+    } else if (streq(key, "Cookies")) {
+      char *v = shell_expand(value);
+      if (v == NULL)
+        fprintf(stderr, "error: failed to allocate memory\n");
+      else
+        arg_cookiefile = v;
+    } else if (streq(key, "Persist")) {
+      arg_persist_cookies = true;
     }
   }
 
-  fclose(fp);
+  return 0;
+}
 
-  return expire;
+static void usage_categories(void) {
+  fprintf(stderr, "Valid categories:\n");
+  for (size_t i = 0; i < ARRAYSIZE(categories); ++i)
+    fprintf(stderr, "\t%s\n", categories[i].name);
 }
 
 static void usage(void) {
@@ -140,7 +205,7 @@ static void usage(void) {
   " Options:\n"
   "  -h, --help                Shows this help message.\n"
   "  -u, --user                AUR login username.\n"
-  "  -p, --password            AUR login password.\n", VERSION);
+  "  -p, --password            AUR login password.\n", BURP_VERSION);
   fprintf(stderr,
   "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
   "                              This will default to the current category\n"
@@ -148,268 +213,151 @@ static void usage(void) {
   "                              packages. -c help will give a list of valid\n"
   "                              categories.\n");
   fprintf(stderr,
+  /* leaving --domain undocumented for now */
+  /* "      --domain=DOMAIN       Domain of the AUR (default: aur.archlinux.org)\n" */
   "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
   "                              temporary file. Useful with the -k option.\n"
   "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
   "                              If you specify this option, you must also provide\n"
   "                              a path to a cookie file.\n"
-  "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
+  /* "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n" */
   "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
-static void usage_categories(void) {
-  unsigned i;
-
-  printf("Valid categories are:\n");
-  for (i = 0; i < ARRAY_SIZE(categories); i++) {
-    printf("\t%s\n", categories[i].name);
-  }
-  putchar('\n');
-}
-
 static int parseargs(int argc, char **argv) {
-  int opt;
-  int option_index = 0;
-  static struct option opts[] = {
+  static struct option option_table[] = {
     {"cookies",       required_argument,  0, 'C'},
     {"category",      required_argument,  0, 'c'},
     {"help",          no_argument,        0, 'h'},
     {"keep-cookies",  no_argument,        0, 'k'},
     {"password",      required_argument,  0, 'p'},
     {"user",          required_argument,  0, 'u'},
-    {"verbose",       no_argument,        0, 'v'},
-    {0, 0, 0, 0}
+    /* {"verbose",       no_argument,        0, 'v'}, */
+    {"domain",        required_argument,  0, 128},
+    {NULL, 0, NULL, 0}
   };
 
-  while ((opt = getopt_long(argc, argv, "C:c:hkp:u:v", opts, &option_index))) {
-    if (opt < 0) {
+  for (;;) {
+    int opt = getopt_long(argc, argv, "C:c:hkp:u:v", option_table, NULL);
+    if (opt < 0)
       break;
-    }
 
     switch (opt) {
-      case 'h':
-        usage();
-        exit(0);
-      case 'c':
-        FREE(config->category);
-        config->category = strndup(optarg, 16);
-        break;
-      case 'C':
-        FREE(config->cookie_file);
-        config->cookie_file = strdup(optarg);
-        break;
-      case 'k':
-        config->cookie_persist = 1;
-        break;
-      case 'p':
-        FREE(config->password);
-        config->password = strndup(optarg, AUR_PASSWORD_MAX);
-        config->cmdline_passwd = 1;
-        break;
-      case 'u':
-        FREE(config->user);
-        config->user = strndup(optarg, AUR_USER_MAX);
-        config->cmdline_user = 1;
-        break;
-      case 'v':
-        config->verbose++;
-        break;
-
-      case '?':
-        return 1;
-      default:
-        return 1;
+    case 'C':
+      arg_cookiefile = optarg;
+      break;
+    case 'c':
+      arg_category = category_validate(optarg);
+      if (arg_category == NULL) {
+        fprintf(stderr, "error: invalid category %s\n", optarg);
+        usage_categories();
+        return -EINVAL;
+      }
+      break;
+    case 'h':
+      usage();
+      return 0;
+    case 'k':
+      arg_persist_cookies = true;
+      break;
+    case 'p':
+      arg_password = optarg;
+      break;
+    case 'u':
+      arg_username = optarg;
+      break;
+    case 128:
+      arg_domain = optarg;
+      break;
+    default:
+      return -EINVAL;
     }
   }
 
   return 0;
 }
 
-static int read_config_file(void) {
-  int ret = 0;
-  char *config_path, *ptr, *xdg_config_home;
-  char line[BUFSIZ];
-  FILE *fp;
-
-  xdg_config_home = getenv("XDG_CONFIG_HOME");
-  if (xdg_config_home) {
-    if (asprintf(&config_path, "%s/burp/burp.conf", xdg_config_home) == -1) {
-      fprintf(stderr, "error: failed to allocate memory\n");
-      return 1;
-    }
-  } else {
-    if (asprintf(&config_path, "%s/.config/burp/burp.conf", getenv("HOME")) == -1) {
-      fprintf(stderr, "error: failed to allocate memory\n");
-      return 1;
-    }
+static int make_login_error(int err) {
+  switch (-err) {
+  case EBADR:
+    fprintf(stderr, "error: insufficient credentials provided to login.\n");
+    break;
+  case EACCES:
+    fprintf(stderr, "error: bad username or password.\n");
+    break;
+  case EKEYEXPIRED:
+    fprintf(stderr, "error: required login cookie has expired.\n");
+    break;
+  case EKEYREJECTED:
+    fprintf(stderr, "error: login cookie not accepted.\n");
+    break;
+  default:
+    fprintf(stderr, "error: failed to login to AUR: %s\n", strerror(-err));
+    break;
   }
 
-  fp = fopen(config_path, "r");
-  if (!fp) {
-    debug("failed to open %s: %s\n", config_path, strerror(errno));
-    free(config_path);
-    return ret;
+  return EXIT_FAILURE;
+}
+
+int main(int argc, char *argv[]) {
+  struct aur_t *aur;
+  int r;
+
+  if (read_config_file() < 0)
+    return EXIT_FAILURE;
+
+  if (parseargs(argc, argv) < 0)
+    return EXIT_FAILURE;
+
+  argc -= optind - 1;
+  argv += optind - 1;
+
+  r = aur_new(&aur, arg_domain, true);
+  if (r < 0) {
+    fprintf(stderr, "error: failed to create AUR client: %s\n", strerror(-r));
+    return EXIT_FAILURE;
   }
 
-  while (fgets(line, BUFSIZ, fp)) {
-    char *key;
-    size_t linelen;
+  if (arg_username)
+    aur_set_username(aur, arg_username);
+  if (arg_password)
+    aur_set_password(aur, arg_password);
+  if (arg_cookiefile)
+    aur_set_cookies(aur, arg_cookiefile);
+  if (arg_persist_cookies)
+    aur_set_persist_cookies(aur, arg_persist_cookies);
 
-    linelen = strtrim(line);
-    if (!linelen || line[0] == '#') {
-      continue;
-    }
-
-    key = ptr = line;
-    strsep(&ptr, "=");
-    strtrim(key);
-    strtrim(ptr);
-
-    if (strcmp(key, "User") == 0) {
-      if (config->user == NULL) {
-        config->user = strndup(ptr, AUR_USER_MAX);
-        debug("using username: %s\n", config->user);
-      }
-    } else if (strcmp(key, "Password") == 0) {
-      if (config->password == NULL) {
-        config->password = strndup(ptr, AUR_PASSWORD_MAX);
-        debug("using password from config file.\n");
-      }
-    } else if (strcmp(key, "Cookies") == 0) {
-      if (config->cookie_file == NULL) {
-        wordexp_t p;
-        if (wordexp(ptr, &p, 0) == 0) {
-          if (p.we_wordc == 1) {
-            config->cookie_file = strdup(p.we_wordv[0]);
-            debug("using cookie file: %s\n", config->cookie_file);
-          } else {
-            fprintf(stderr, "Ambiguous path to cookie file. Ignoring config option.\n");
-          }
-          wordfree(&p);
-        } else {
-          perror("wordexp");
-          ret = errno;
-          break;
-        }
-      }
-    } else if (strcmp(key, "Persist") == 0) {
-      config->cookie_persist = 1;
-    } else {
-      fprintf(stderr, "Error parsing config file: bad option '%s'\n", key);
-      ret = 1;
+  r = aur_login(aur, false);
+  if (r < 0) {
+    switch (r) {
+    case -EKEYEXPIRED:
+      /* cookie expired */
+      fprintf(stderr, "warning: Your cookie has expired -- using password login\n");
+    /* fallthrough */
+    case -ENOKEY:
+      /* cookie not found */
+      r = aur_login(aur, true);
       break;
     }
+
+    if (r < 0)
+      return make_login_error(r);
   }
 
-  fclose(fp);
-  free(config_path);
+  for (int i = 1; i < argc; ++i) {
+    _cleanup_free_ char *error = NULL;
+    int k = aur_upload(aur, argv[i], arg_category, &error);
+    if (k == 0)
+      printf("success: uploaded %s\n", argv[i]);
+    else {
+      fprintf(stderr, "failed to upload %s: %s\n", argv[i],
+          error ? error : strerror(-k));
+      if (r == 0)
+        r = k;
+    }
+  }
 
-  return ret;
+  aur_free(aur);
+
+  return r == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
 }
-
-int main(int argc, char **argv) {
-  long cookie_expire;
-  int ret = 1;
-
-  config = config_new();
-
-  if (curl_init() != 0) {
-    fprintf(stderr, "Error: An error occurred while initializing curl\n");
-    goto finish;
-  }
-
-  ret = parseargs(argc, argv);
-  if (ret != 0) {
-    return 1;
-  }
-
-  if (config->category) {
-    config->catnum = category_is_valid(config->category);
-    if (config->catnum < 0) {
-      usage_categories();
-      goto finish;
-    }
-  } else {
-    config->catnum = 1;
-  }
-
-  if (optind == argc) {
-    fprintf(stderr, "error: no packages specified (use -h for help)\n");
-    goto finish;
-  }
-
-  /* We can't read the config file without having verbosity set, but the
-   * command line options need to take precedence over the config file.
-   * Therefore, if ((user && pass) || cookie file) is supplied on the command
-   * line, we won't read the config file.
-   */
-  if (!(config->user || config->cookie_file)) {
-    read_config_file();
-  }
-
-  if (cookie_setup() != 0) {
-    goto finish;
-  }
-
-  cookie_expire = cookie_expire_time(config->cookie_file, AUR_DOMAIN, AUR_COOKIE_NAME);
-  if (cookie_expire > 0) {
-    if (time(NULL) < cookie_expire) {
-      config->cookie_valid = 1;
-    } else {
-      fprintf(stderr, "Your cookie has expired. Gathering user and password...\n");
-    }
-  }
-
-  if (!config->cookie_valid) {
-    if (!config->cmdline_user && !config->user) {
-      config->user = read_stdin("Enter username", AUR_USER_MAX, 1);
-      if (!config->user || !strlen(config->user)) {
-        fprintf(stderr, "error: invalid username supplied\n");
-        goto finish;
-      }
-    }
-
-    if (!config->password || (config->cmdline_user && !config->cmdline_passwd)) {
-      printf("[%s] ", config->user);
-      config->password = read_stdin("Enter password", AUR_PASSWORD_MAX, 0);
-    }
-  }
-
-  if (config->cookie_valid || aur_login() == 0) {
-    char *csrf_token;
-
-    /* booo, stupid hacks. curl doesn't prime curl_slist of cookies
-     * we want via CURLINFO_COOKIELIST until we call perform at least
-     * once. */
-    prime_cookielist();
-
-    csrf_token = get_csrf_token();
-    if (csrf_token == NULL) {
-      fprintf(stderr, "failed to obtain CSRF token for uploading\n");
-      goto finish;
-    }
-
-    ret = 0;
-
-    while (optind < argc) {
-      int r = aur_upload(argv[optind++], csrf_token);
-      if (r != 0) {
-        ret = r;
-      }
-    }
-    free(csrf_token);
-  }
-
-finish:
-  if (config->cookie_file && !config->cookie_persist) {
-    debug("Deleting file %s\n", config->cookie_file);
-    unlink(config->cookie_file);
-  }
-
-  config_free(config);
-  curl_cleanup();
-
-  return ret;
-}
-
-/* vim: set et sw=2: */

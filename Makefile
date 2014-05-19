@@ -2,18 +2,15 @@
 
 VERSION   = $(shell git describe)
 
-CPPFLAGS := -DVERSION=\"$(VERSION)\" $(CPPFLAGS)
-CFLAGS   := -std=c99 -g -pedantic -Wall -Wextra -Werror $(CFLAGS)
+CPPFLAGS := -DBURP_VERSION=\"$(VERSION)\" -D_GNU_SOURCE $(CPPFLAGS)
+CFLAGS   := -std=c99 -g -Wall -Wextra -Werror $(CFLAGS)
 LDLIBS    = -lcurl
 
 PREFIX    = /local/usr
 
-SRC = burp.c conf.c curl.c util.c
-OBJ = $(SRC:.c=.o)
-
 all: burp doc
 
-burp: $(OBJ)
+burp: burp.o aur.o
 
 doc: burp.1
 burp.1: README.pod
