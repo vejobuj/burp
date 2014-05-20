@@ -75,6 +75,9 @@ int aur_new(aur_t **ret, const char *domainname, bool secure) {
 }
 
 void aur_free(aur_t *aur) {
+  if (aur == NULL)
+    return;
+
   free(aur->username);
   free(aur->cookies);
   free(aur->domainname);

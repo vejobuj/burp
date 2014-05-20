@@ -10,12 +10,16 @@
 #include "aur.h"
 #include "util.h"
 
+static inline void aur_freep(struct aur_t **aur) { aur_free(*aur); }
+#define _cleanup_aur_ _cleanup_(aur_freep)
+
 struct category_t {
   const char *name;
   const char *id;
 };
 
 /* This list must be sorted */
+/* TODO: move this list into aur.h, add aur_parse_category, etc */
 static const struct category_t categories[] = {
   { "daemons",      "2" },
   { "devel",        "3" },
@@ -84,7 +88,6 @@ static char *find_config_file(void) {
 
   return NULL;
 }
-
 
 static char *shell_expand(const char *in) {
   wordexp_t wexp;
@@ -224,7 +227,7 @@ static void usage(void) {
   "  burp also honors a config file. See burp(1) for more information.\n\n");
 }
 
-static int parseargs(int argc, char **argv) {
+static int parseargs(int *argc, char ***argv) {
   static struct option option_table[] = {
     {"cookies",       required_argument,  0, 'C'},
     {"category",      required_argument,  0, 'c'},
@@ -238,7 +241,7 @@ static int parseargs(int argc, char **argv) {
   };
 
   for (;;) {
-    int opt = getopt_long(argc, argv, "C:c:hkp:u:", option_table, NULL);
+    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:", option_table, NULL);
     if (opt < 0)
       break;
 
@@ -274,6 +277,9 @@ static int parseargs(int argc, char **argv) {
     }
   }
 
+  *argv += optind;
+  *argc -= optind;
+
   return 0;
 }
 
@@ -299,33 +305,8 @@ static int make_login_error(int err) {
   return EXIT_FAILURE;
 }
 
-int main(int argc, char *argv[]) {
-  struct aur_t *aur;
+int login(struct aur_t *aur) {
   int r;
-
-  if (read_config_file() < 0)
-    return EXIT_FAILURE;
-
-  if (parseargs(argc, argv) < 0)
-    return EXIT_FAILURE;
-
-  argc -= optind - 1;
-  argv += optind - 1;
-
-  r = aur_new(&aur, arg_domain, true);
-  if (r < 0) {
-    fprintf(stderr, "error: failed to create AUR client: %s\n", strerror(-r));
-    return EXIT_FAILURE;
-  }
-
-  if (arg_username)
-    aur_set_username(aur, arg_username);
-  if (arg_password)
-    aur_set_password(aur, arg_password);
-  if (arg_cookiefile)
-    aur_set_cookies(aur, arg_cookiefile);
-  if (arg_persist_cookies)
-    aur_set_persist_cookies(aur, arg_persist_cookies);
 
   r = aur_login(aur, false);
   if (r < 0) {
@@ -344,20 +325,66 @@ int main(int argc, char *argv[]) {
       return make_login_error(r);
   }
 
-  for (int i = 1; i < argc; ++i) {
+  return 0;
+}
+
+int upload(struct aur_t *aur, char **packages, int package_count) {
+  int r = 0;
+
+  for (int i = 0; i < package_count; ++i) {
     _cleanup_free_ char *error = NULL;
-    int k = aur_upload(aur, argv[i], arg_category, &error);
+    int k = aur_upload(aur, packages[i], arg_category, &error);
     if (k == 0)
-      printf("success: uploaded %s\n", argv[i]);
+      printf("success: uploaded %s\n", packages[i]);
     else {
-      fprintf(stderr, "failed to upload %s: %s\n", argv[i],
+      fprintf(stderr, "error: failed to upload %s: %s\n", packages[i],
           error ? error : strerror(-k));
       if (r == 0)
         r = k;
     }
   }
 
-  aur_free(aur);
+  return r;
+}
 
-  return r == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+int create_aur_client(struct aur_t **aur) {
+  int r;
+
+  r = aur_new(aur, arg_domain, true);
+  if (r < 0) {
+    fprintf(stderr, "error: failed to create AUR client: %s\n", strerror(-r));
+    return r;
+  }
+
+  if (arg_username)
+    aur_set_username(*aur, arg_username);
+  if (arg_password)
+    aur_set_password(*aur, arg_password);
+  if (arg_cookiefile)
+    aur_set_cookies(*aur, arg_cookiefile);
+  if (arg_persist_cookies)
+    aur_set_persist_cookies(*aur, arg_persist_cookies);
+
+  return 0;
+}
+
+int main(int argc, char *argv[]) {
+  _cleanup_aur_ struct aur_t *aur = NULL;
+
+  if (read_config_file() < 0)
+    return EXIT_FAILURE;
+
+  if (parseargs(&argc, &argv) < 0)
+    return EXIT_FAILURE;
+
+  if (create_aur_client(&aur) < 0)
+    return EXIT_FAILURE;
+
+  if (login(aur) < 0)
+    return EXIT_FAILURE;
+
+  if (upload(aur, argv, argc) < 0)
+    return EXIT_FAILURE;
+
+  return EXIT_SUCCESS;
 }
