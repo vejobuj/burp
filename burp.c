@@ -238,7 +238,7 @@ static int parseargs(int argc, char **argv) {
   };
 
   for (;;) {
-    int opt = getopt_long(argc, argv, "C:c:hkp:u:v", option_table, NULL);
+    int opt = getopt_long(argc, argv, "C:c:hkp:u:", option_table, NULL);
     if (opt < 0)
       break;
 
