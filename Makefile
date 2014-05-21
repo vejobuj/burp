@@ -10,7 +10,7 @@ PREFIX    = /local/usr
 
 all: burp doc
 
-burp: burp.o aur.o
+burp: burp.o aur.o log.o
 
 doc: burp.1
 burp.1: README.pod

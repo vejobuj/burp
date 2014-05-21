@@ -10,6 +10,7 @@
 #include <curl/curl.h>
 
 #include "aur.h"
+#include "log.h"
 #include "util.h"
 
 #define AUR_LOGIN_FAIL_MSG      "Bad username or password."
@@ -25,6 +26,8 @@ struct aur_t {
 
   char *cookies;
   bool persist_cookies;
+
+  bool debug;
 
   CURL *curl;
   struct curl_slist *extra_headers;
@@ -47,6 +50,22 @@ static inline void formfreep(struct curl_httppost **form) {
 }
 #define _cleanup_formfree_ _cleanup_(formfreep)
 
+static size_t write_handler(void *ptr, size_t nmemb, size_t size, void *userdata) {
+  struct memblock_t *response = userdata;
+  size_t bytecount = size * nmemb;
+  char *alloc;
+
+  alloc = realloc(response->data, response->len + bytecount + 1);
+  if (alloc == NULL)
+    return 0;
+
+  response->data = memcpy(alloc + response->len, ptr, bytecount);
+  response->len += bytecount;
+  response->data[response->len] = '\0';
+
+  return bytecount;
+}
+
 int aur_new(aur_t **ret, const char *domainname, bool secure) {
   aur_t *aur;
 
@@ -68,6 +87,10 @@ int aur_new(aur_t **ret, const char *domainname, bool secure) {
 
   /* enable cookie handling */
   curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, "");
+  curl_easy_setopt(aur->curl, CURLOPT_WRITEFUNCTION, write_handler);
+
+  log_debug("created new AUR client for %s://%s", aur->proto,
+      aur->domainname);
 
   *ret = aur;
 
@@ -77,6 +100,9 @@ int aur_new(aur_t **ret, const char *domainname, bool secure) {
 void aur_free(aur_t *aur) {
   if (aur == NULL)
     return;
+
+  log_debug("destroying AUR client for %s://%s", aur->proto,
+      aur->domainname);
 
   free(aur->username);
   free(aur->cookies);
@@ -121,10 +147,16 @@ int aur_set_password(aur_t *aur, const char *password) {
   return copy_string(&aur->password, password);
 }
 
+int aur_set_debug(aur_t *aur, bool enable) {
+  aur->debug = enable;
+  return 0;
+}
+
 static struct curl_httppost *make_form(const struct form_element_t *elements) {
   struct curl_httppost *post = NULL, *last = NULL;
 
   for (const struct form_element_t *elem = elements; elem->key; ++elem) {
+    log_debug("  appending form field: %s=%s", elem->key, elem->value);
     if (curl_formadd(&post, &last, elem->keyoption, elem->key,
           elem->valueoption, elem->value, CURLFORM_END) != CURL_FORMADD_OK)
       return NULL;
@@ -142,6 +174,8 @@ static struct curl_httppost *make_login_form(aur_t *aur) {
     { 0, NULL, 0, NULL },
   };
 
+  log_debug("building login form");
+
   return make_form(elements);
 }
 
@@ -154,6 +188,8 @@ static struct curl_httppost *make_upload_form(aur_t *aur, const char *filepath,
     { CURLFORM_COPYNAME, "pfile", CURLFORM_FILE, filepath },
     { 0, NULL, 0, NULL },
   };
+
+  log_debug("building upload form");
 
   return make_form(elements);
 }
@@ -203,6 +239,8 @@ static int touch(const char *filename) {
 }
 
 static int aur_login_cookies(aur_t *aur) {
+  log_info("attempting login by cookie as user %s", aur->username);
+
   if (aur->cookies)
     curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, aur->cookies);
 
@@ -238,6 +276,7 @@ static CURL *make_post_request(aur_t *aur, const char *path,
   if (url == NULL)
     return NULL;
 
+  log_info("creating POST request to %s", url);
   curl_easy_setopt(aur->curl, CURLOPT_URL, url);
   free(url);
 
@@ -249,63 +288,47 @@ static CURL *make_post_request(aur_t *aur, const char *path,
 
   curl_easy_setopt(aur->curl, CURLOPT_HTTPPOST, post);
   curl_easy_setopt(aur->curl, CURLOPT_HTTPHEADER, aur->extra_headers);
-  /* curl_easy_setopt(aur->curl, CURLOPT_VERBOSE, 1L); */
+
+  if (aur->debug)
+    curl_easy_setopt(aur->curl, CURLOPT_VERBOSE, 1L);
 
   return aur->curl;
 }
 
-static size_t write_handler(void *ptr, size_t nmemb, size_t size, void *userdata) {
-  struct memblock_t *response = userdata;
-  size_t bytecount = size * nmemb;
-  char *alloc;
+static long communicate(aur_t *aur, struct memblock_t *response) {
+  long response_code;
 
-  alloc = realloc(response->data, response->len + bytecount + 1);
-  if (alloc == NULL)
-    return 0;
-
-  response->data = memcpy(alloc + response->len, ptr, bytecount);
-  response->len += bytecount;
-  response->data[response->len] = '\0';
-
-  return bytecount;
-}
-
-static int aur_communicate(aur_t *aur, struct memblock_t *response) {
-  CURLcode r;
-
+  log_info("fetching response from remote");
   curl_easy_setopt(aur->curl, CURLOPT_WRITEDATA, response);
-  curl_easy_setopt(aur->curl, CURLOPT_WRITEFUNCTION, write_handler);
 
-  r = curl_easy_perform(aur->curl);
+  if (curl_easy_perform(aur->curl) != CURLE_OK)
+    return -1;
 
-  curl_easy_setopt(aur->curl, CURLOPT_WRITEDATA, NULL);
-  curl_easy_setopt(aur->curl, CURLOPT_WRITEFUNCTION, NULL);
+  curl_easy_getinfo(aur->curl, CURLINFO_RESPONSE_CODE, &response_code);
+  log_info("server responded with status %ld", response_code);
 
-  return r != 0;
+  return response_code;
 }
 
 static int aur_login_password(aur_t *aur) {
   _cleanup_formfree_ struct curl_httppost *form = NULL;
   _cleanup_free_ char *buf = NULL;
   struct memblock_t response = { NULL, 0 };
-  int r = 0;
+  long http_status;
+
+  log_info("attempting login by password as user %s", aur->username);
 
   form = make_login_form(aur);
   if (form == NULL)
-    r = -ENOMEM;
+    return -ENOMEM;
 
   aur->curl = make_post_request(aur, "/login", form);
   if (aur->curl == NULL)
     return -ENOMEM;
 
-  r = aur_communicate(aur, &response);
+  http_status = communicate(aur, &response);
   buf = response.data;
-  if (r < 0) {
-    fprintf(stderr, "error: failed to communicate: %s\n", strerror(-r));
-    return r;
-  }
-
-  if (response.data) {
+  if (http_status >= 0 && response.data) {
     if (strstr(response.data, AUR_LOGIN_FAIL_MSG) != NULL)
       return -EACCES;
   } else
@@ -328,10 +351,8 @@ static char *ask_password(const char *user, const char *prompt, size_t maxlen) {
   t.c_lflag &= ~ECHO;
   tcsetattr(0, TCSANOW, &t);
 
-  if (!fgets(buf, maxlen, stdin)) {
-    fprintf(stderr, "failed to read from stdin\n");
+  if (!fgets(buf, maxlen, stdin))
     return NULL;
-  }
 
   buf[strlen(buf) - 1] = '\0';
 
@@ -450,6 +471,8 @@ int aur_upload(aur_t *aur, const char *tarball_path,
   struct memblock_t response = { NULL, 0 };
   int r;
 
+  log_info("uploading %s with category %s", tarball_path, category);
+
   if (stat(tarball_path, &st) < 0)
     return -errno;
 
@@ -464,13 +487,9 @@ int aur_upload(aur_t *aur, const char *tarball_path,
   if (aur->curl == NULL)
     return -ENOMEM;
 
-  r = aur_communicate(aur, &response);
+  http_status = communicate(aur, &response);
   buf = response.data;
-  if (r < 0)
-    return r;
-
-  curl_easy_getinfo(aur->curl, CURLINFO_RESPONSE_CODE, &http_status);
-  if (http_status >= 400)
+  if (http_status < 0 || http_status >= 400)
     return -EIO;
 
   curl_easy_getinfo(aur->curl, CURLINFO_REDIRECT_URL, &effective_url);

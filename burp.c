@@ -8,9 +8,10 @@
 #include <wordexp.h>
 
 #include "aur.h"
+#include "log.h"
 #include "util.h"
 
-static inline void aur_freep(struct aur_t **aur) { aur_free(*aur); }
+static inline void aur_freep(aur_t **aur) { aur_free(*aur); }
 #define _cleanup_aur_ _cleanup_(aur_freep)
 
 struct category_t {
@@ -46,6 +47,7 @@ static char *arg_domain = "aur.archlinux.org";
 static char *arg_username;
 static char *arg_password;
 static char *arg_cookiefile;
+static int arg_loglevel = LOG_WARN;
 static const char *arg_category = "1";
 static bool arg_persist_cookies;
 
@@ -71,7 +73,7 @@ static char *find_config_file(void) {
   var = getenv("XDG_CONFIG_HOME");
   if (var) {
     if (asprintf(&out, "%s/burp/burp.conf", var) < 0) {
-      fprintf(stderr, "error: failed to allocate memory\n");
+      log_error("failed to allocate memory");
       return NULL;
     }
     return out;
@@ -80,7 +82,7 @@ static char *find_config_file(void) {
   var = getenv("HOME");
   if (var) {
     if (asprintf(&out, "%s/.config/burp/burp.conf", var) < 0){
-      fprintf(stderr, "error: failed to allocate memory\n");
+      log_error("failed to allocate memory");
       return NULL;
     }
     return out;
@@ -138,7 +140,7 @@ static int read_config_file(void) {
 
   config_path = find_config_file();
   if (config_path == NULL) {
-    fprintf(stderr, "warning: unable to determine location of config file. "
+    log_warn("unable to determine location of config file. "
        "Skipping.\n");
     return 0;
   }
@@ -146,8 +148,7 @@ static int read_config_file(void) {
   fp = fopen(config_path, "r");
   if (fp == NULL) {
     if (errno != ENOENT) {
-      fprintf(stderr, "error: failed to open %s: %s\n", config_path,
-          strerror(errno));
+      log_error("failed to open %s: %s", config_path, strerror(errno));
       return -errno;
     }
 
@@ -173,19 +174,19 @@ static int read_config_file(void) {
     if (streq(key, "User")) {
       char *v = strdup(value);
       if (v == NULL)
-        fprintf(stderr, "error: failed to allocate memory\n");
+        log_error("failed to allocate memory\n");
       else
         arg_username = v;
     } else if (streq(key, "Password")) {
       char *v = strdup(value);
       if (v == NULL)
-        fprintf(stderr, "error: failed to allocate memory\n");
+        log_error("failed to allocate memory\n");
       else
         arg_password = v;
     } else if (streq(key, "Cookies")) {
       char *v = shell_expand(value);
       if (v == NULL)
-        fprintf(stderr, "error: failed to allocate memory\n");
+        log_error("failed to allocate memory\n");
       else
         arg_cookiefile = v;
     } else if (streq(key, "Persist")) {
@@ -202,7 +203,7 @@ static void usage_categories(void) {
     fprintf(stderr, "\t%s\n", categories[i].name);
 }
 
-static void usage(void) {
+static void __attribute__((noreturn)) usage(void) {
   fprintf(stderr, "burp %s\n"
   "Usage: burp [options] targets...\n\n"
   " Options:\n"
@@ -223,8 +224,9 @@ static void usage(void) {
   "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
   "                              If you specify this option, you must also provide\n"
   "                              a path to a cookie file.\n"
-  /* "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n" */
+  "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
   "  burp also honors a config file. See burp(1) for more information.\n\n");
+  exit(EXIT_SUCCESS);
 }
 
 static int parseargs(int *argc, char ***argv) {
@@ -235,13 +237,13 @@ static int parseargs(int *argc, char ***argv) {
     {"keep-cookies",  no_argument,        0, 'k'},
     {"password",      required_argument,  0, 'p'},
     {"user",          required_argument,  0, 'u'},
-    /* {"verbose",       no_argument,        0, 'v'}, */
+    {"verbose",       no_argument,        0, 'v'},
     {"domain",        required_argument,  0, 128},
     {NULL, 0, NULL, 0}
   };
 
   for (;;) {
-    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:", option_table, NULL);
+    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:v", option_table, NULL);
     if (opt < 0)
       break;
 
@@ -252,14 +254,13 @@ static int parseargs(int *argc, char ***argv) {
     case 'c':
       arg_category = category_validate(optarg);
       if (arg_category == NULL) {
-        fprintf(stderr, "error: invalid category %s\n", optarg);
+        log_error("invalid category %s", optarg);
         usage_categories();
         return -EINVAL;
       }
       break;
     case 'h':
       usage();
-      return 0;
     case 'k':
       arg_persist_cookies = true;
       break;
@@ -272,6 +273,9 @@ static int parseargs(int *argc, char ***argv) {
     case 128:
       arg_domain = optarg;
       break;
+    case 'v':
+      ++arg_loglevel;
+      break;
     default:
       return -EINVAL;
     }
@@ -280,32 +284,34 @@ static int parseargs(int *argc, char ***argv) {
   *argv += optind;
   *argc -= optind;
 
+  log_set_level(arg_loglevel);
+
   return 0;
 }
 
-static int make_login_error(int err) {
+static int log_login_error(int err) {
   switch (-err) {
   case EBADR:
-    fprintf(stderr, "error: insufficient credentials provided to login.\n");
+    log_error("insufficient credentials provided to login.");
     break;
   case EACCES:
-    fprintf(stderr, "error: bad username or password.\n");
+    log_error("bad username or password.");
     break;
   case EKEYEXPIRED:
-    fprintf(stderr, "error: required login cookie has expired.\n");
+    log_error("required login cookie has expired.");
     break;
   case EKEYREJECTED:
-    fprintf(stderr, "error: login cookie not accepted.\n");
+    log_error("login cookie not accepted.");
     break;
   default:
-    fprintf(stderr, "error: failed to login to AUR: %s\n", strerror(-err));
+    log_error("failed to login to AUR: %s", strerror(-err));
     break;
   }
 
   return EXIT_FAILURE;
 }
 
-int login(struct aur_t *aur) {
+int login(aur_t *aur) {
   int r;
 
   r = aur_login(aur, false);
@@ -313,7 +319,7 @@ int login(struct aur_t *aur) {
     switch (r) {
     case -EKEYEXPIRED:
       /* cookie expired */
-      fprintf(stderr, "warning: Your cookie has expired -- using password login\n");
+      log_warn("Your cookie has expired -- using password login");
     /* fallthrough */
     case -ENOKEY:
       /* cookie not found */
@@ -322,22 +328,22 @@ int login(struct aur_t *aur) {
     }
 
     if (r < 0)
-      return make_login_error(r);
+      return log_login_error(r);
   }
 
   return 0;
 }
 
-int upload(struct aur_t *aur, char **packages, int package_count) {
+int upload(aur_t *aur, char **packages, int package_count) {
   int r = 0;
 
   for (int i = 0; i < package_count; ++i) {
     _cleanup_free_ char *error = NULL;
     int k = aur_upload(aur, packages[i], arg_category, &error);
     if (k == 0)
-      printf("success: uploaded %s\n", packages[i]);
+      log_info("success: uploaded %s", packages[i]);
     else {
-      fprintf(stderr, "error: failed to upload %s: %s\n", packages[i],
+      log_error("failed to upload %s: %s", packages[i],
           error ? error : strerror(-k));
       if (r == 0)
         r = k;
@@ -347,12 +353,12 @@ int upload(struct aur_t *aur, char **packages, int package_count) {
   return r;
 }
 
-int create_aur_client(struct aur_t **aur) {
+int create_aur_client(aur_t **aur) {
   int r;
 
   r = aur_new(aur, arg_domain, true);
   if (r < 0) {
-    fprintf(stderr, "error: failed to create AUR client: %s\n", strerror(-r));
+    log_error("failed to create AUR client: %s", strerror(-r));
     return r;
   }
 
@@ -364,12 +370,14 @@ int create_aur_client(struct aur_t **aur) {
     aur_set_cookies(*aur, arg_cookiefile);
   if (arg_persist_cookies)
     aur_set_persist_cookies(*aur, arg_persist_cookies);
+  if (arg_loglevel >= LOG_DEBUG)
+    aur_set_debug(*aur, true);
 
   return 0;
 }
 
 int main(int argc, char *argv[]) {
-  _cleanup_aur_ struct aur_t *aur = NULL;
+  _cleanup_aur_ aur_t *aur = NULL;
 
   if (read_config_file() < 0)
     return EXIT_FAILURE;

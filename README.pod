@@ -47,6 +47,10 @@ the AUR will be attempted using these cookies. Also see the -k option.
 Cookies will be persistent and reused for logins. If you specify this option, you must
 also provide a cookie file path with the -C option or in the config file.
 
+=item B<-v, --verbose>
+
+Be more verbose. Pass this option twice to see debug info.
+
 =back
 
 =head1 CONFIGURATION
