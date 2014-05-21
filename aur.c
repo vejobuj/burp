@@ -45,6 +45,11 @@ struct memblock_t {
   size_t len;
 };
 
+static inline void memblock_free(struct memblock_t *memblock) {
+  free(memblock->data);
+}
+#define _cleanup_memblock_ _cleanup_(memblock_free)
+
 static inline void formfreep(struct curl_httppost **form) {
   curl_formfree(*form);
 }
@@ -311,8 +316,7 @@ static long communicate(aur_t *aur, struct memblock_t *response) {
 
 static int aur_login_password(aur_t *aur) {
   _cleanup_formfree_ struct curl_httppost *form = NULL;
-  _cleanup_free_ char *buf = NULL;
-  struct memblock_t response = { NULL, 0 };
+  _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
 
   log_info("attempting login by password as user %s", aur->username);
@@ -326,7 +330,6 @@ static int aur_login_password(aur_t *aur) {
     return -ENOMEM;
 
   http_status = communicate(aur, &response);
-  buf = response.data;
   if (http_status >= 0 && response.data) {
     if (strstr(response.data, AUR_LOGIN_FAIL_MSG) != NULL)
       return -EACCES;
@@ -463,11 +466,10 @@ static int extract_upload_error(const char *html, char **error_out) {
 int aur_upload(aur_t *aur, const char *tarball_path,
     const char *category, char **error) {
   _cleanup_formfree_ struct curl_httppost *form = NULL;
-  _cleanup_free_ char *buf = NULL;
+  _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
   char *effective_url;
   struct stat st;
-  struct memblock_t response = { NULL, 0 };
   int r;
 
   log_info("uploading %s with category %s", tarball_path, category);
@@ -487,7 +489,6 @@ int aur_upload(aur_t *aur, const char *tarball_path,
     return -ENOMEM;
 
   http_status = communicate(aur, &response);
-  buf = response.data;
   if (http_status < 0 || http_status >= 400)
     return -EIO;
 
