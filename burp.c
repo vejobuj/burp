@@ -147,13 +147,12 @@ static int read_config_file(void) {
 
   fp = fopen(config_path, "r");
   if (fp == NULL) {
-    if (errno != ENOENT) {
-      log_error("failed to open %s: %s", config_path, strerror(errno));
-      return -errno;
-    }
+    if (errno == ENOENT)
+      /* ignore error when file isn't found */
+      return 0;
 
-    /* ignore error when file isn't found */
-    return 0;
+    log_error("failed to open %s: %s", config_path, strerror(errno));
+    return -errno;
   }
 
   while (fgets(line, sizeof(line), fp) != NULL) {
@@ -231,15 +230,15 @@ static void __attribute__((noreturn)) usage(void) {
 
 static int parseargs(int *argc, char ***argv) {
   static struct option option_table[] = {
-    {"cookies",       required_argument,  0, 'C'},
-    {"category",      required_argument,  0, 'c'},
-    {"help",          no_argument,        0, 'h'},
-    {"keep-cookies",  no_argument,        0, 'k'},
-    {"password",      required_argument,  0, 'p'},
-    {"user",          required_argument,  0, 'u'},
-    {"verbose",       no_argument,        0, 'v'},
-    {"domain",        required_argument,  0, 128},
-    {NULL, 0, NULL, 0}
+    { "cookies",       required_argument,  0, 'C' },
+    { "category",      required_argument,  0, 'c' },
+    { "help",          no_argument,        0, 'h' },
+    { "keep-cookies",  no_argument,        0, 'k' },
+    { "password",      required_argument,  0, 'p' },
+    { "user",          required_argument,  0, 'u' },
+    { "verbose",       no_argument,        0, 'v' },
+    { "domain",        required_argument,  0, 128 },
+    { NULL, 0, NULL, 0 },
   };
 
   for (;;) {

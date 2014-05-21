@@ -224,7 +224,6 @@ static int update_aursid_from_cookies(aur_t *aur, bool verify_expiration) {
 
     aur->aursid = aursid;
     aursid = NULL;
-
     r = 0;
     break;
   }
