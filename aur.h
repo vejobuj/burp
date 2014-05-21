@@ -3,8 +3,6 @@
 
 #include <stdbool.h>
 
-typedef void CURL;
-
 typedef struct aur_t aur_t;
 
 int aur_new(aur_t **ret, const char *domainname, bool secure);
