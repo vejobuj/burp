@@ -6,8 +6,9 @@ _burp() {
   _get_comp_words_by_ref cur prev
 
   # Valid upload categories
-  categories="daemons devel editors emulators games gnome i18n kde kernels lib
-              modules multimedia network office science system x11 xfce"
+  categories="daemons devel editors emulators fonts games gnome i18n kde
+              kernels lib modules multimedia network office science system
+              x11 xfce"
 
   # Valid longopts
   opts="-u --user -p --password -c --category -k --keep-cookies -C --cookies -v --verbose"
