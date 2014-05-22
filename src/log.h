@@ -27,7 +27,6 @@ int log_get_max_level(void);
 
 #define log_debug(...)  log_full(LOG_DEBUG,   __VA_ARGS__)
 #define log_info(...)   log_full(LOG_INFO,    __VA_ARGS__)
-#define log_notice(...) log_full(LOG_NOTICE,  __VA_ARGS__)
 #define log_warn(...)   log_full(LOG_WARN,    __VA_ARGS__)
 #define log_error(...)  log_full(LOG_ERROR,   __VA_ARGS__)
 

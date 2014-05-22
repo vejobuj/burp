@@ -359,7 +359,7 @@ static int upload(aur_t *aur, char **packages, int package_count) {
     _cleanup_free_ char *error = NULL;
     int k = aur_upload(aur, packages[i], arg_category, &error);
     if (k == 0)
-      log_info("success: uploaded %s", packages[i]);
+      printf("success: uploaded %s\n", packages[i]);
     else {
       log_error("failed to upload %s: %s", packages[i],
           error ? error : strerror(-k));
