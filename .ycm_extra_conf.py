@@ -8,6 +8,7 @@ flags = [
 '-Wall',
 '-Wextra',
 '-Werror',
+'-include', 'config.h',
 '-D_GNU_SOURCE',
 '-DNDEBUG',
 '-DUSE_CLANG_COMPLETER',

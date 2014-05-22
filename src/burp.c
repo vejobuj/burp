@@ -11,6 +11,11 @@
 #include "log.h"
 #include "util.h"
 
+#ifdef GIT_VERSION
+#undef PACKAGE_VERSION
+#define PACKAGE_VERSION GIT_VERSION
+#endif
+
 static inline void aur_freep(aur_t **aur) { aur_free(*aur); }
 #define _cleanup_aur_ _cleanup_(aur_freep)
 
@@ -208,7 +213,7 @@ static void __attribute__((noreturn)) usage(void) {
   " Options:\n"
   "  -h, --help                Shows this help message.\n"
   "  -u, --user                AUR login username.\n"
-  "  -p, --password            AUR login password.\n", BURP_VERSION);
+  "  -p, --password            AUR login password.\n", PACKAGE_VERSION);
   fprintf(stderr,
   "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
   "                              This will default to the current category\n"
