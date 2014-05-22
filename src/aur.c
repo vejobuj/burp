@@ -157,6 +157,10 @@ int aur_set_debug(aur_t *aur, bool enable) {
   return 0;
 }
 
+static bool is_package_url(const char *url) {
+  return strstr(url, "/packages/") || strstr(url, "/pkgbase/");
+}
+
 static struct curl_httppost *make_form(const struct form_element_t *elements) {
   struct curl_httppost *post = NULL, *last = NULL;
 
@@ -468,7 +472,7 @@ int aur_upload(aur_t *aur, const char *tarball_path,
   _cleanup_formfree_ struct curl_httppost *form = NULL;
   _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
-  char *effective_url;
+  char *effective_url = NULL;
   struct stat st;
   int r;
 
@@ -493,8 +497,7 @@ int aur_upload(aur_t *aur, const char *tarball_path,
     return -EIO;
 
   curl_easy_getinfo(aur->curl, CURLINFO_REDIRECT_URL, &effective_url);
-  if (effective_url && (strstr(effective_url, "/packages/") ||
-        strstr(effective_url, "/pkgbase/")))
+  if (effective_url && is_package_url(effective_url))
     return 0;
 
   r = extract_upload_error(response.data, error);
