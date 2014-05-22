@@ -24,6 +24,10 @@ struct category_t {
   const char *id;
 };
 
+enum {
+  OPT_DOMAIN = '~' + 1,
+};
+
 /* This list must be sorted */
 /* TODO: move this list into aur.h, add aur_parse_category, etc */
 static const struct category_t categories[] = {
@@ -41,6 +45,7 @@ static const struct category_t categories[] = {
   { "modules",     "11" },
   { "multimedia",  "12" },
   { "network",     "13" },
+  { "none",         "1" },
   { "office",      "14" },
   { "science",     "15" },
   { "system",      "16" },
@@ -48,18 +53,18 @@ static const struct category_t categories[] = {
   { "xfce",        "18" },
 };
 
-static char *arg_domain = "aur.archlinux.org";
+static const char *arg_category = "1";
+static const char *arg_domain = "aur.archlinux.org";
 static char *arg_username;
 static char *arg_password;
 static char *arg_cookiefile;
 static int arg_loglevel = LOG_WARN;
-static const char *arg_category = "1";
 static bool arg_persist_cookies;
 
 static int category_compare(const void *a, const void *b) {
   const struct category_t *left = a;
   const struct category_t *right = b;
-  return strcmp(left->name, right->name);
+  return strcasecmp(left->name, right->name);
 }
 
 static const char *category_validate(const char *cat) {
@@ -201,25 +206,28 @@ static int read_config_file(void) {
   return 0;
 }
 
+static void __attribute__((noreturn)) print_version(void) {
+  fputs(PACKAGE_NAME " v" PACKAGE_VERSION "\n", stdout);
+  exit(EXIT_SUCCESS);
+}
+
 static void usage_categories(void) {
   fprintf(stderr, "Valid categories:\n");
   for (size_t i = 0; i < ARRAYSIZE(categories); ++i)
     fprintf(stderr, "\t%s\n", categories[i].name);
 }
 
-static void __attribute__((noreturn)) usage(void) {
+static void __attribute__((noreturn)) print_usage(void) {
   fprintf(stderr, "burp %s\n"
   "Usage: burp [options] targets...\n\n"
   " Options:\n"
-  "  -h, --help                Shows this help message.\n"
   "  -u, --user                AUR login username.\n"
-  "  -p, --password            AUR login password.\n", PACKAGE_VERSION);
-  fprintf(stderr,
+  "  -p, --password            AUR login password.\n"
   "  -c CAT, --category=CAT    Assign the uploaded package with category CAT.\n"
   "                              This will default to the current category\n"
   "                              for pre-existing packages and 'None' for new\n"
   "                              packages. -c help will give a list of valid\n"
-  "                              categories.\n");
+  "                              categories.\n", PACKAGE_VERSION);
   fprintf(stderr,
   /* leaving --domain undocumented for now */
   /* "      --domain=DOMAIN       Domain of the AUR (default: aur.archlinux.org)\n" */
@@ -229,6 +237,9 @@ static void __attribute__((noreturn)) usage(void) {
   "                              If you specify this option, you must also provide\n"
   "                              a path to a cookie file.\n"
   "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
+
+  "  -h, --help                display this help and exit\n"
+  "  -V, --version             display the version and exit\n\n"
   "  burp also honors a config file. See burp(1) for more information.\n\n");
   exit(EXIT_SUCCESS);
 }
@@ -241,13 +252,14 @@ static int parseargs(int *argc, char ***argv) {
     { "keep-cookies",  no_argument,        0, 'k' },
     { "password",      required_argument,  0, 'p' },
     { "user",          required_argument,  0, 'u' },
+    { "version",       no_argument,        0, 'V' },
     { "verbose",       no_argument,        0, 'v' },
-    { "domain",        required_argument,  0, 128 },
+    { "domain",        required_argument,  0, OPT_DOMAIN },
     { NULL, 0, NULL, 0 },
   };
 
   for (;;) {
-    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:v", option_table, NULL);
+    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:Vv", option_table, NULL);
     if (opt < 0)
       break;
 
@@ -264,7 +276,7 @@ static int parseargs(int *argc, char ***argv) {
       }
       break;
     case 'h':
-      usage();
+      print_usage();
     case 'k':
       arg_persist_cookies = true;
       break;
@@ -274,11 +286,13 @@ static int parseargs(int *argc, char ***argv) {
     case 'u':
       arg_username = optarg;
       break;
-    case 128:
-      arg_domain = optarg;
-      break;
+    case 'V':
+      print_version();
     case 'v':
       ++arg_loglevel;
+      break;
+    case OPT_DOMAIN:
+      arg_domain = optarg;
       break;
     default:
       return -EINVAL;
@@ -315,7 +329,7 @@ static int log_login_error(int err) {
   return EXIT_FAILURE;
 }
 
-int login(aur_t *aur) {
+static int login(aur_t *aur) {
   int r;
 
   r = aur_login(aur, false);
@@ -338,7 +352,7 @@ int login(aur_t *aur) {
   return 0;
 }
 
-int upload(aur_t *aur, char **packages, int package_count) {
+static int upload(aur_t *aur, char **packages, int package_count) {
   int r = 0;
 
   for (int i = 0; i < package_count; ++i) {
@@ -357,7 +371,7 @@ int upload(aur_t *aur, char **packages, int package_count) {
   return r;
 }
 
-int create_aur_client(aur_t **aur) {
+static int create_aur_client(aur_t **aur) {
   int r;
 
   r = aur_new(aur, arg_domain, true);
@@ -400,3 +414,5 @@ int main(int argc, char *argv[]) {
 
   return EXIT_SUCCESS;
 }
+
+/* vim: set et ts=2 sw=2: */
