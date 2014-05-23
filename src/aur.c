@@ -53,7 +53,12 @@ static inline void memblock_free(struct memblock_t *memblock) {
 static inline void formfreep(struct curl_httppost **form) {
   curl_formfree(*form);
 }
-#define _cleanup_formfree_ _cleanup_(formfreep)
+#define _cleanup_form_ _cleanup_(formfreep)
+
+static inline void slistfreep(struct curl_slist **slist) {
+  curl_slist_free_all(*slist);
+}
+#define _cleanup_slist_ _cleanup_(slistfreep)
 
 static size_t write_handler(void *ptr, size_t nmemb, size_t size, void *userdata) {
   struct memblock_t *response = userdata;
@@ -204,12 +209,11 @@ static struct curl_httppost *make_upload_form(aur_t *aur, const char *filepath,
 }
 
 static int update_aursid_from_cookies(aur_t *aur, bool verify_expiration) {
-  struct curl_slist *i, *cookielist = NULL;
-  int r = -ENOKEY;
+  _cleanup_slist_ struct curl_slist *cookielist = NULL;
 
   curl_easy_getinfo(aur->curl, CURLINFO_COOKIELIST, &cookielist);
 
-  for (i = cookielist; i; i = i->next) {
+  for (struct curl_slist *i = cookielist; i; i = i->next) {
     _cleanup_free_ char *domain = NULL, *name = NULL, *aursid = NULL;
     long expire;
 
@@ -220,26 +224,21 @@ static int update_aursid_from_cookies(aur_t *aur, bool verify_expiration) {
     if (strncmp(domain, "#HttpOnly_", 10) == 0) {
       if (!streq(domain + strlen("#HttpOnly_"), aur->domainname))
         continue;
-    } else if (!streq(domain, aur->domainname)) {
+    } else if (!streq(domain, aur->domainname))
       continue;
-    }
+
+    if (!streq(name, "AURSID"))
+      continue;
 
     if (verify_expiration && time(NULL) > expire)
       return -EKEYEXPIRED;
 
-    if (!streq(name, "AURSID")) {
-      continue;
-    }
-
     aur->aursid = aursid;
     aursid = NULL;
-    r = 0;
-    break;
+    return 0;
   }
 
-  curl_slist_free_all(cookielist);
-
-  return r;
+  return -ENOKEY;
 }
 
 static int touch(const char *filename) {
@@ -319,7 +318,7 @@ static long communicate(aur_t *aur, struct memblock_t *response) {
 }
 
 static int aur_login_password(aur_t *aur) {
-  _cleanup_formfree_ struct curl_httppost *form = NULL;
+  _cleanup_form_ struct curl_httppost *form = NULL;
   _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
 
@@ -469,7 +468,7 @@ static int extract_upload_error(const char *html, char **error_out) {
 
 int aur_upload(aur_t *aur, const char *tarball_path,
     const char *category, char **error) {
-  _cleanup_formfree_ struct curl_httppost *form = NULL;
+  _cleanup_form_ struct curl_httppost *form = NULL;
   _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
   char *effective_url = NULL;
