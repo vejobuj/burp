@@ -30,7 +30,6 @@ struct aur_t {
   bool debug;
 
   CURL *curl;
-  struct curl_slist *extra_headers;
 };
 
 struct form_element_t {
@@ -121,7 +120,6 @@ void aur_free(aur_t *aur) {
   free(aur->password);
 
   curl_easy_cleanup(aur->curl);
-  curl_slist_free_all(aur->extra_headers);
   curl_global_cleanup();
 }
 
@@ -276,7 +274,6 @@ static char *aur_make_url(aur_t *aur, const char *uri) {
 
 static CURL *make_post_request(aur_t *aur, const char *path,
     struct curl_httppost *post) {
-  struct curl_slist *headers = NULL;
   char *url = NULL;
 
   url = aur_make_url(aur, path);
@@ -287,14 +284,7 @@ static CURL *make_post_request(aur_t *aur, const char *path,
   curl_easy_setopt(aur->curl, CURLOPT_URL, url);
   free(url);
 
-  if (aur->extra_headers == NULL) {
-    aur->extra_headers = curl_slist_append(headers, "Expect:");
-    if (aur->extra_headers == NULL)
-      return NULL;
-  }
-
   curl_easy_setopt(aur->curl, CURLOPT_HTTPPOST, post);
-  curl_easy_setopt(aur->curl, CURLOPT_HTTPHEADER, aur->extra_headers);
 
   if (aur->debug)
     curl_easy_setopt(aur->curl, CURLOPT_VERBOSE, 1L);
