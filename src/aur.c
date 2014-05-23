@@ -75,6 +75,33 @@ static size_t write_handler(void *ptr, size_t nmemb, size_t size, void *userdata
   return bytecount;
 }
 
+static int touch(const char *filename) {
+  return close(open(filename, O_WRONLY|O_CREAT|O_CLOEXEC|O_NOCTTY, 0644));
+}
+
+static int curl_reset(aur_t *aur) {
+  if (aur->curl == NULL)
+    aur->curl = curl_easy_init();
+  else
+    curl_easy_reset(aur->curl);
+
+  if (aur->curl == NULL)
+    return -ENOMEM;
+
+  if (aur->cookies) {
+    curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, aur->cookies);
+    if (aur->persist_cookies) {
+      touch(aur->cookies);
+      curl_easy_setopt(aur->curl, CURLOPT_COOKIEJAR, aur->cookies);
+    }
+  } else
+    curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, "");
+
+  curl_easy_setopt(aur->curl, CURLOPT_WRITEFUNCTION, write_handler);
+
+  return 0;
+}
+
 int aur_new(aur_t **ret, const char *domainname, bool secure) {
   aur_t *aur;
 
@@ -89,14 +116,6 @@ int aur_new(aur_t **ret, const char *domainname, bool secure) {
     return -ENOMEM;
 
   curl_global_init(CURL_GLOBAL_ALL);
-
-  aur->curl = curl_easy_init();
-  if (aur->curl == NULL)
-    return -ENOMEM;
-
-  /* enable cookie handling */
-  curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, "");
-  curl_easy_setopt(aur->curl, CURLOPT_WRITEFUNCTION, write_handler);
 
   log_debug("created new AUR client for %s://%s", aur->proto,
       aur->domainname);
@@ -228,35 +247,39 @@ static int update_aursid_from_cookies(aur_t *aur, bool verify_expiration) {
     if (!streq(name, "AURSID"))
       continue;
 
-    if (verify_expiration && time(NULL) > expire)
+    if ((verify_expiration && time(NULL) > expire) || streq(aursid, "deleted"))
       return -EKEYEXPIRED;
+
+    log_debug("found valid cookie to use");
 
     aur->aursid = aursid;
     aursid = NULL;
     return 0;
   }
 
+  /* if no cookie was found, expire any existing credentials */
+  free(aur->aursid);
+  aur->aursid = NULL;
+
   return -ENOKEY;
 }
 
-static int touch(const char *filename) {
-  return close(open(filename, O_WRONLY|O_CREAT|O_CLOEXEC|O_NOCTTY, 0644));
-}
-
-static int aur_login_cookies(aur_t *aur) {
-  log_info("attempting login by cookie as user %s", aur->username);
-
-  if (aur->cookies)
-    curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, aur->cookies);
-
-  if (aur->persist_cookies) {
-    touch(aur->cookies);
-    curl_easy_setopt(aur->curl, CURLOPT_COOKIEJAR, aur->cookies);
-  }
-
+static void preload_cookiefile(aur_t *aur) {
   /* Hack alert! Prime the cookielist for inspection. */
   curl_easy_setopt(aur->curl, CURLOPT_URL, "file:///dev/null");
   curl_easy_perform(aur->curl);
+}
+
+static int aur_login_cookies(aur_t *aur) {
+  int r;
+
+  log_info("attempting login by cookie as user %s", aur->username);
+
+  r = curl_reset(aur);
+  if (r < 0)
+    return r;
+
+  preload_cookiefile(aur);
 
   return update_aursid_from_cookies(aur, true);
 }
@@ -311,8 +334,13 @@ static int aur_login_password(aur_t *aur) {
   _cleanup_form_ struct curl_httppost *form = NULL;
   _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
   long http_status;
+  int r;
 
   log_info("attempting login by password as user %s", aur->username);
+
+  r = curl_reset(aur);
+  if (r < 0)
+    return r;
 
   form = make_login_form(aur);
   if (form == NULL)
@@ -494,6 +522,39 @@ int aur_upload(aur_t *aur, const char *tarball_path,
     return r;
 
   return -EKEYREJECTED;
+}
+
+int aur_logout(aur_t *aur) {
+  _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
+  long http_status;
+  int r;
+
+  log_info("logging out");
+
+  r = curl_reset(aur);
+  if (r < 0)
+    return r;
+
+  if (aur->aursid == NULL) {
+    if (aur->cookies)
+      preload_cookiefile(aur);
+    else
+      return 0;
+  }
+
+  aur->curl = make_post_request(aur, "/logout", NULL);
+  if (aur->curl == NULL)
+    return -ENOMEM;
+
+  http_status = communicate(aur, &response);
+  if (http_status >= 400)
+    return -EIO;
+
+  r = update_aursid_from_cookies(aur, true);
+  if (r != -ENOKEY && r != -EKEYEXPIRED)
+    return -EIO;
+
+  return 0;
 }
 
 /* vim: set et ts=2 sw=2: */

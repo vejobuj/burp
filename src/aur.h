@@ -15,6 +15,7 @@ int aur_set_persist_cookies(aur_t *aur, bool enabled);
 int aur_set_debug(aur_t *aur, bool enable);
 
 int aur_login(aur_t *aur, bool force_password);
+int aur_logout(aur_t *aur);
 int aur_upload(aur_t *aur, const char *tarball_path, const char *category,
     char **error);
 

@@ -60,6 +60,7 @@ static char *arg_password;
 static char *arg_cookiefile;
 static int arg_loglevel = LOG_WARN;
 static bool arg_persist_cookies;
+static bool arg_expire;
 
 static int category_compare(const void *a, const void *b) {
   const struct category_t *left = a;
@@ -229,6 +230,7 @@ static void __attribute__((noreturn)) print_usage(void) {
   "                              packages. -c help will give a list of valid\n"
   "                              categories.\n", PACKAGE_VERSION);
   fprintf(stderr,
+  "  -e, --expire              Instead of uploading, expire the current session\n"
   /* leaving --domain undocumented for now */
   /* "      --domain=DOMAIN       Domain of the AUR (default: aur.archlinux.org)\n" */
   "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
@@ -248,6 +250,7 @@ static int parseargs(int *argc, char ***argv) {
   static struct option option_table[] = {
     { "cookies",       required_argument,  0, 'C' },
     { "category",      required_argument,  0, 'c' },
+    { "expire",        no_argument,        0, 'e' },
     { "help",          no_argument,        0, 'h' },
     { "keep-cookies",  no_argument,        0, 'k' },
     { "password",      required_argument,  0, 'p' },
@@ -259,7 +262,7 @@ static int parseargs(int *argc, char ***argv) {
   };
 
   for (;;) {
-    int opt = getopt_long(*argc, *argv, "C:c:hkp:u:Vv", option_table, NULL);
+    int opt = getopt_long(*argc, *argv, "C:c:ehkp:u:Vv", option_table, NULL);
     if (opt < 0)
       break;
 
@@ -274,6 +277,9 @@ static int parseargs(int *argc, char ***argv) {
         usage_categories();
         return -EINVAL;
       }
+      break;
+    case 'e':
+      arg_expire = true;
       break;
     case 'h':
       print_usage();
@@ -301,6 +307,11 @@ static int parseargs(int *argc, char ***argv) {
 
   *argv += optind;
   *argc -= optind;
+
+  if (!arg_expire && *argc == 0) {
+    log_error("error: no files specified (use -h for help)");
+    return -EINVAL;
+  }
 
   log_set_level(arg_loglevel);
 
@@ -405,6 +416,9 @@ int main(int argc, char *argv[]) {
 
   if (create_aur_client(&aur) < 0)
     return EXIT_FAILURE;
+
+  if (arg_expire)
+    return !!aur_logout(aur);
 
   if (login(aur) < 0)
     return EXIT_FAILURE;
