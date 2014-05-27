@@ -318,13 +318,15 @@ static int parseargs(int *argc, char ***argv) {
   return 0;
 }
 
-static int log_login_error(int err) {
+static int log_login_error(int err, const char *html_error) {
+  if (html_error) {
+    log_error("%s", html_error);
+    return -EXIT_FAILURE;
+  }
+
   switch (-err) {
   case EBADR:
     log_error("insufficient credentials provided to login.");
-    break;
-  case EACCES:
-    log_error("bad username or password.");
     break;
   case EKEYEXPIRED:
     log_error("required login cookie has expired.");
@@ -337,13 +339,14 @@ static int log_login_error(int err) {
     break;
   }
 
-  return EXIT_FAILURE;
+  return -EXIT_FAILURE;
 }
 
 static int login(aur_t *aur) {
   int r;
+  _cleanup_free_ char *error = NULL;
 
-  r = aur_login(aur, false);
+  r = aur_login(aur, false, &error);
   if (r < 0) {
     switch (r) {
     case -EKEYEXPIRED:
@@ -352,12 +355,12 @@ static int login(aur_t *aur) {
     /* fallthrough */
     case -ENOKEY:
       /* cookie not found */
-      r = aur_login(aur, true);
+      r = aur_login(aur, true, &error);
       break;
     }
 
     if (r < 0)
-      return log_login_error(r);
+      return log_login_error(r, error);
   }
 
   return 0;

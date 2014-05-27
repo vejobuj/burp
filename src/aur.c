@@ -13,8 +13,6 @@
 #include "log.h"
 #include "util.h"
 
-#define AUR_LOGIN_FAIL_MSG      "Bad username or password."
-
 struct aur_t {
   const char *proto;
   char *domainname;
@@ -183,237 +181,6 @@ static bool is_package_url(const char *url) {
   return strstr(url, "/packages/") || strstr(url, "/pkgbase/");
 }
 
-static struct curl_httppost *make_form(const struct form_element_t *elements) {
-  struct curl_httppost *post = NULL, *last = NULL;
-
-  for (const struct form_element_t *elem = elements; elem->key; ++elem) {
-    log_debug("  appending form field: %s=%s", elem->key, elem->value);
-    if (curl_formadd(&post, &last, elem->keyoption, elem->key,
-          elem->valueoption, elem->value, CURLFORM_END) != CURL_FORMADD_OK)
-      return NULL;
-  }
-
-  return post;
-}
-
-static struct curl_httppost *make_login_form(aur_t *aur) {
-  const struct form_element_t elements[] = {
-    { CURLFORM_COPYNAME, "user", CURLFORM_COPYCONTENTS, aur->username },
-    { CURLFORM_COPYNAME, "passwd", CURLFORM_COPYCONTENTS, aur->password },
-    { CURLFORM_COPYNAME, "remember_me", CURLFORM_COPYCONTENTS,
-      aur->persist_cookies ? "on" : "" },
-    { 0, NULL, 0, NULL },
-  };
-
-  log_debug("building login form");
-
-  return make_form(elements);
-}
-
-static struct curl_httppost *make_upload_form(aur_t *aur, const char *filepath,
-    const char *category) {
-  const struct form_element_t elements[] = {
-    { CURLFORM_COPYNAME, "category", CURLFORM_COPYCONTENTS, category },
-    { CURLFORM_COPYNAME, "token", CURLFORM_COPYCONTENTS, aur->aursid },
-    { CURLFORM_COPYNAME, "pkgsubmit", CURLFORM_COPYCONTENTS, "1" },
-    { CURLFORM_COPYNAME, "pfile", CURLFORM_FILE, filepath },
-    { 0, NULL, 0, NULL },
-  };
-
-  log_debug("building upload form");
-
-  return make_form(elements);
-}
-
-static int update_aursid_from_cookies(aur_t *aur, bool verify_expiration) {
-  _cleanup_slist_ struct curl_slist *cookielist = NULL;
-
-  curl_easy_getinfo(aur->curl, CURLINFO_COOKIELIST, &cookielist);
-
-  for (struct curl_slist *i = cookielist; i; i = i->next) {
-    _cleanup_free_ char *domain = NULL, *name = NULL, *aursid = NULL;
-    long expire;
-
-    if (sscanf(i->data, "%ms\t%*s\t%*s\t%*s\t%ld\t%ms\t%ms",
-        &domain, &expire, &name, &aursid) != 4)
-      continue;
-
-    if (strncmp(domain, "#HttpOnly_", 10) == 0) {
-      if (!streq(domain + strlen("#HttpOnly_"), aur->domainname))
-        continue;
-    } else if (!streq(domain, aur->domainname))
-      continue;
-
-    if (!streq(name, "AURSID"))
-      continue;
-
-    if ((verify_expiration && time(NULL) > expire) || streq(aursid, "deleted"))
-      return -EKEYEXPIRED;
-
-    log_debug("found valid cookie to use");
-
-    aur->aursid = aursid;
-    aursid = NULL;
-    return 0;
-  }
-
-  /* if no cookie was found, expire any existing credentials */
-  free(aur->aursid);
-  aur->aursid = NULL;
-
-  return -ENOKEY;
-}
-
-static void preload_cookiefile(aur_t *aur) {
-  /* Hack alert! Prime the cookielist for inspection. */
-  curl_easy_setopt(aur->curl, CURLOPT_URL, "file:///dev/null");
-  curl_easy_perform(aur->curl);
-}
-
-static int aur_login_cookies(aur_t *aur) {
-  int r;
-
-  log_info("attempting login by cookie as user %s", aur->username);
-
-  r = curl_reset(aur);
-  if (r < 0)
-    return r;
-
-  preload_cookiefile(aur);
-
-  return update_aursid_from_cookies(aur, true);
-}
-
-static char *aur_make_url(aur_t *aur, const char *uri) {
-  char *url;
-  int r;
-
-  r = asprintf(&url, "%s://%s%s", aur->proto, aur->domainname, uri);
-  if (r < 0)
-    return NULL;
-
-  return url;
-}
-
-static CURL *make_post_request(aur_t *aur, const char *path,
-    struct curl_httppost *post) {
-  char *url = NULL;
-
-  url = aur_make_url(aur, path);
-  if (url == NULL)
-    return NULL;
-
-  log_info("creating POST request to %s", url);
-  curl_easy_setopt(aur->curl, CURLOPT_URL, url);
-  free(url);
-
-  curl_easy_setopt(aur->curl, CURLOPT_HTTPPOST, post);
-
-  if (aur->debug)
-    curl_easy_setopt(aur->curl, CURLOPT_VERBOSE, 1L);
-
-  return aur->curl;
-}
-
-static long communicate(aur_t *aur, struct memblock_t *response) {
-  long response_code;
-
-  log_info("fetching response from remote");
-  curl_easy_setopt(aur->curl, CURLOPT_WRITEDATA, response);
-
-  if (curl_easy_perform(aur->curl) != CURLE_OK)
-    return -1;
-
-  curl_easy_getinfo(aur->curl, CURLINFO_RESPONSE_CODE, &response_code);
-  log_info("server responded with status %ld", response_code);
-
-  return response_code;
-}
-
-static int aur_login_password(aur_t *aur) {
-  _cleanup_form_ struct curl_httppost *form = NULL;
-  _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
-  long http_status;
-  int r;
-
-  log_info("attempting login by password as user %s", aur->username);
-
-  r = curl_reset(aur);
-  if (r < 0)
-    return r;
-
-  form = make_login_form(aur);
-  if (form == NULL)
-    return -ENOMEM;
-
-  aur->curl = make_post_request(aur, "/login", form);
-  if (aur->curl == NULL)
-    return -ENOMEM;
-
-  http_status = communicate(aur, &response);
-  if (http_status >= 0 && response.data) {
-    if (strstr(response.data, AUR_LOGIN_FAIL_MSG) != NULL)
-      return -EACCES;
-  } else
-    return -EFAULT;
-
-  return update_aursid_from_cookies(aur, false);
-}
-
-static char *ask_password(const char *user, const char *prompt, size_t maxlen) {
-  struct termios t;
-  char *buf;
-
-  buf = malloc(maxlen + 1);
-  if (buf == NULL)
-    return NULL;
-
-  printf("[%s] %s: ", user, prompt);
-
-  tcgetattr(0, &t);
-  t.c_lflag &= ~ECHO;
-  tcsetattr(0, TCSANOW, &t);
-
-  if (!fgets(buf, maxlen, stdin))
-    return NULL;
-
-  buf[strlen(buf) - 1] = '\0';
-
-  putchar('\n');
-  t.c_lflag |= ECHO;
-  tcsetattr(0, TCSANOW, &t);
-
-  return buf;
-}
-
-static int aur_login_interactive(aur_t *aur) {
-  char *password;
-  int r;
-
-  password = ask_password(aur->username, "password", 1000);
-  if (password == NULL)
-    return -ENOMEM;
-
-  r = aur_set_password(aur, password);
-  if (r < 0)
-    return r;
-
-  return aur_login_password(aur);
-}
-
-int aur_login(aur_t *aur, bool force_password) {
-  if (!aur->username)
-    return -EBADR;
-
-  if (!force_password && aur->cookies)
-    return aur_login_cookies(aur);
-
-  if (aur->password)
-    return aur_login_password(aur);
-
-  return aur_login_interactive(aur);
-}
-
 static char *strip_html_tags(const char *in, size_t len) {
   int tag_depth = 0;
   size_t i;
@@ -466,7 +233,7 @@ static int extract_html(const char *html, const char *start_tag,
   return 0;
 }
 
-static int extract_upload_error(const char *html, char **error_out) {
+static int extract_html_error(const char *html, char **error_out) {
   struct tagpair_t {
     const char *start;
     const char *end;
@@ -484,6 +251,258 @@ static int extract_upload_error(const char *html, char **error_out) {
   return -ENOENT;
 }
 
+static struct curl_httppost *make_form(const struct form_element_t *elements) {
+  struct curl_httppost *post = NULL, *last = NULL;
+
+  for (const struct form_element_t *elem = elements; elem->key; ++elem) {
+    log_debug("  appending form field: %s=%s", elem->key, elem->value);
+    if (curl_formadd(&post, &last, elem->keyoption, elem->key,
+          elem->valueoption, elem->value, CURLFORM_END) != CURL_FORMADD_OK)
+      return NULL;
+  }
+
+  return post;
+}
+
+static struct curl_httppost *make_login_form(aur_t *aur) {
+  const struct form_element_t elements[] = {
+    { CURLFORM_COPYNAME, "user", CURLFORM_COPYCONTENTS, aur->username },
+    { CURLFORM_COPYNAME, "passwd", CURLFORM_COPYCONTENTS, aur->password },
+    { CURLFORM_COPYNAME, "remember_me", CURLFORM_COPYCONTENTS,
+      aur->persist_cookies ? "on" : "" },
+    { 0, NULL, 0, NULL },
+  };
+
+  log_debug("building login form");
+
+  return make_form(elements);
+}
+
+static struct curl_httppost *make_upload_form(aur_t *aur, const char *filepath,
+    const char *category) {
+  const struct form_element_t elements[] = {
+    { CURLFORM_COPYNAME, "category", CURLFORM_COPYCONTENTS, category },
+    { CURLFORM_COPYNAME, "token", CURLFORM_COPYCONTENTS, aur->aursid },
+    { CURLFORM_COPYNAME, "pkgsubmit", CURLFORM_COPYCONTENTS, "1" },
+    { CURLFORM_COPYNAME, "pfile", CURLFORM_FILE, filepath },
+    { 0, NULL, 0, NULL },
+  };
+
+  log_debug("building upload form");
+
+  return make_form(elements);
+}
+
+static bool domain_equals(const char *a, const char *b) {
+  size_t a_len, b_len;
+
+  /* ignore port numbers */
+  a_len = strcspn(a, ":");
+  b_len = strcspn(b, ":");
+
+  return a_len == b_len && strncasecmp(a, b, a_len) == 0;
+}
+
+static int update_aursid_from_cookies(aur_t *aur) {
+  _cleanup_slist_ struct curl_slist *cookielist = NULL;
+  time_t now = time(NULL);
+
+  curl_easy_getinfo(aur->curl, CURLINFO_COOKIELIST, &cookielist);
+
+  for (struct curl_slist *i = cookielist; i; i = i->next) {
+    _cleanup_free_ char *domain = NULL, *name = NULL, *aursid = NULL;
+    long expire;
+
+    log_debug("cookie=%s", i->data);
+
+    if (sscanf(i->data, "%ms\t%*s\t%*s\t%*s\t%ld\t%ms\t%ms",
+        &domain, &expire, &name, &aursid) != 4)
+      continue;
+
+    if (strncmp(domain, "#HttpOnly_", 10) == 0) {
+      if (!domain_equals(domain + strlen("#HttpOnly_"), aur->domainname))
+        continue;
+    } else if (!domain_equals(domain, aur->domainname))
+      continue;
+
+    if (!streq(name, "AURSID"))
+      continue;
+
+    if (now >= expire)
+      return -EKEYEXPIRED;
+
+    log_debug("found valid cookie to use");
+
+    aur->aursid = aursid;
+    aursid = NULL;
+    return 0;
+  }
+
+  /* if no cookie was found, expire any existing credentials */
+  free(aur->aursid);
+  aur->aursid = NULL;
+
+  return -ENOKEY;
+}
+
+static void preload_cookiefile(aur_t *aur) {
+  /* Hack alert! Prime the cookielist for inspection. */
+  curl_easy_setopt(aur->curl, CURLOPT_URL, "file:///dev/null");
+  curl_easy_perform(aur->curl);
+}
+
+static int aur_login_cookies(aur_t *aur) {
+  int r;
+
+  log_info("attempting login by cookie as user %s", aur->username);
+
+  r = curl_reset(aur);
+  if (r < 0)
+    return r;
+
+  preload_cookiefile(aur);
+
+  return update_aursid_from_cookies(aur);
+}
+
+static char *aur_make_url(aur_t *aur, const char *uri) {
+  char *url;
+  int r;
+
+  r = asprintf(&url, "%s://%s%s", aur->proto, aur->domainname, uri);
+  if (r < 0)
+    return NULL;
+
+  return url;
+}
+
+static CURL *make_post_request(aur_t *aur, const char *path,
+    struct curl_httppost *post) {
+  char *url = NULL;
+
+  url = aur_make_url(aur, path);
+  if (url == NULL)
+    return NULL;
+
+  log_info("creating POST request to %s", url);
+  curl_easy_setopt(aur->curl, CURLOPT_URL, url);
+  free(url);
+
+  curl_easy_setopt(aur->curl, CURLOPT_HTTPPOST, post);
+
+  if (aur->debug)
+    curl_easy_setopt(aur->curl, CURLOPT_VERBOSE, 1L);
+
+  return aur->curl;
+}
+
+static long communicate(aur_t *aur, struct memblock_t *response) {
+  long response_code;
+
+  log_info("fetching response from remote");
+  curl_easy_setopt(aur->curl, CURLOPT_WRITEDATA, response);
+
+  if (curl_easy_perform(aur->curl) != CURLE_OK)
+    return -1;
+
+  curl_easy_getinfo(aur->curl, CURLINFO_RESPONSE_CODE, &response_code);
+  log_info("server responded with status %ld", response_code);
+
+  return response_code;
+}
+
+static int aur_login_password(aur_t *aur, char **error) {
+  _cleanup_form_ struct curl_httppost *form = NULL;
+  _cleanup_memblock_ struct memblock_t response = { NULL, 0 };
+  char *effective_url = NULL;
+  long http_status;
+  int r;
+
+  log_info("attempting login by password as user %s", aur->username);
+
+  r = curl_reset(aur);
+  if (r < 0)
+    return r;
+
+  form = make_login_form(aur);
+  if (form == NULL)
+    return -ENOMEM;
+
+  aur->curl = make_post_request(aur, "/login", form);
+  if (aur->curl == NULL)
+    return -ENOMEM;
+
+  http_status = communicate(aur, &response);
+  if (http_status < 0 || http_status >= 400)
+    return -EIO;
+
+  curl_easy_getinfo(aur->curl, CURLINFO_REDIRECT_URL, &effective_url);
+  if (effective_url == NULL) {
+    r = extract_html_error(response.data, error);
+    if (r < 0)
+      return r;
+
+    if (error)
+      return -EIO;
+  }
+
+  return update_aursid_from_cookies(aur);
+}
+
+static char *ask_password(const char *user, const char *prompt, size_t maxlen) {
+  struct termios t;
+  char *buf;
+
+  buf = malloc(maxlen + 1);
+  if (buf == NULL)
+    return NULL;
+
+  printf("[%s] %s: ", user, prompt);
+
+  tcgetattr(0, &t);
+  t.c_lflag &= ~ECHO;
+  tcsetattr(0, TCSANOW, &t);
+
+  if (!fgets(buf, maxlen, stdin))
+    return NULL;
+
+  buf[strlen(buf) - 1] = '\0';
+
+  putchar('\n');
+  t.c_lflag |= ECHO;
+  tcsetattr(0, TCSANOW, &t);
+
+  return buf;
+}
+
+static int aur_login_interactive(aur_t *aur, char **error) {
+  char *password;
+  int r;
+
+  password = ask_password(aur->username, "password", 1000);
+  if (password == NULL)
+    return -ENOMEM;
+
+  r = aur_set_password(aur, password);
+  if (r < 0)
+    return r;
+
+  return aur_login_password(aur, error);
+}
+
+int aur_login(aur_t *aur, bool force_password, char **error) {
+  if (!aur->username)
+    return -EBADR;
+
+  if (!force_password && aur->cookies)
+    return aur_login_cookies(aur);
+
+  if (aur->password)
+    return aur_login_password(aur, error);
+
+  return aur_login_interactive(aur, error);
+}
+
 int aur_upload(aur_t *aur, const char *tarball_path,
     const char *category, char **error) {
   _cleanup_form_ struct curl_httppost *form = NULL;
@@ -492,6 +511,9 @@ int aur_upload(aur_t *aur, const char *tarball_path,
   char *effective_url = NULL;
   struct stat st;
   int r;
+
+  if (aur->aursid == NULL)
+    return -ENOKEY;
 
   log_info("uploading %s with category %s", tarball_path, category);
 
@@ -517,7 +539,7 @@ int aur_upload(aur_t *aur, const char *tarball_path,
   if (effective_url && is_package_url(effective_url))
     return 0;
 
-  r = extract_upload_error(response.data, error);
+  r = extract_html_error(response.data, error);
   if (r < 0)
     return r;
 
@@ -550,7 +572,7 @@ int aur_logout(aur_t *aur) {
   if (http_status >= 400)
     return -EIO;
 
-  r = update_aursid_from_cookies(aur, true);
+  r = update_aursid_from_cookies(aur);
   if (r != -ENOKEY && r != -EKEYEXPIRED)
     return -EIO;
 
