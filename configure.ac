@@ -1,6 +1,6 @@
 AC_PREREQ(2.60)
 AC_INIT(burp,
-	[3],
+	[4],
 	[dreisner@archlinux.org])
 
 AC_CONFIG_SRCDIR([src/burp.c])
