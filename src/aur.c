@@ -268,8 +268,7 @@ static struct curl_httppost *make_login_form(aur_t *aur) {
   const struct form_element_t elements[] = {
     { CURLFORM_COPYNAME, "user", CURLFORM_COPYCONTENTS, aur->username },
     { CURLFORM_COPYNAME, "passwd", CURLFORM_COPYCONTENTS, aur->password },
-    { CURLFORM_COPYNAME, "remember_me", CURLFORM_COPYCONTENTS,
-      aur->persist_cookies ? "on" : "" },
+    { CURLFORM_COPYNAME, "remember_me", CURLFORM_COPYCONTENTS, "on" },
     { 0, NULL, 0, NULL },
   };
 
