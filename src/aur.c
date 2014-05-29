@@ -327,6 +327,7 @@ static int update_aursid_from_cookies(aur_t *aur) {
 
     log_debug("found valid cookie to use");
 
+    free(aur->aursid);
     aur->aursid = aursid;
     aursid = NULL;
     return 0;
