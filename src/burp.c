@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <wordexp.h>
 
 #include "aur.h"
@@ -333,11 +334,95 @@ static int log_login_error(int err, const char *html_error) {
   return -EXIT_FAILURE;
 }
 
+static void echo_on(void) {
+  struct termios t;
+  tcgetattr(0, &t);
+  t.c_lflag |= ECHO;
+  tcsetattr(0, TCSANOW, &t);
+}
+
+static void echo_off(void) {
+  struct termios t;
+  tcgetattr(0, &t);
+  t.c_lflag &= ~ECHO;
+  tcsetattr(0, TCSANOW, &t);
+}
+
+static char *read_stdin(char *buf, int len, bool echo) {
+  char *r;
+
+  if (!echo)
+    echo_off();
+
+  r = fgets(buf, len, stdin);
+
+  if (!echo) {
+    putc('\n', stdout);
+    echo_on();
+  }
+
+  if (r == NULL)
+    return NULL;
+
+  buf[strlen(buf) - 1] = '\0';
+
+  return r;
+}
+
+static char *ask_username(void) {
+  char *username, *r;
+
+  username = malloc(128 + 1);
+  if (username == NULL)
+    return NULL;
+
+  printf("Enter username: ");
+
+  r = read_stdin(username, 128, true);
+  if (r == NULL) {
+    free(username);
+    return NULL;
+  }
+
+  return username;
+}
+
+static char *ask_password(void) {
+  char *passwd, *r;
+
+  passwd = malloc(128 + 1);
+  if (passwd == NULL)
+    return NULL;
+
+  printf("[%s] Enter password: ", arg_username);
+
+  r = read_stdin(passwd, 128, false);
+  if (r == NULL) {
+    free(passwd);
+    return NULL;
+  }
+
+  return passwd;
+}
+
 static int login(aur_t *aur) {
   int r;
-  _cleanup_free_ char *error = NULL;
+  _cleanup_free_ char *username = NULL, *password = NULL, *error = NULL;
 
-  r = aur_login(aur, false, &error);
+  if (arg_username == NULL) {
+
+    username = ask_username();
+    if (username == NULL)
+      return log_login_error(ENOMEM, NULL);
+
+    r = aur_set_username(aur, username);
+    if (r < 0)
+      return log_login_error(r, NULL);
+
+    arg_username = username;
+  }
+
+  r = aur_login(aur, &error);
   if (r < 0) {
     switch (r) {
     case -EKEYEXPIRED:
@@ -345,8 +430,15 @@ static int login(aur_t *aur) {
       log_warn("Your cookie has expired -- using password login");
     /* fallthrough */
     case -ENOKEY:
-      /* cookie not found */
-      r = aur_login(aur, true, &error);
+      password = ask_password();
+      if (password == NULL)
+        return -ENOMEM;
+
+      r = aur_set_password(aur, password);
+      if (r < 0)
+        return log_login_error(r, NULL);
+
+      r = aur_login(aur, &error);
       break;
     }
 

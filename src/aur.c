@@ -444,58 +444,17 @@ static int aur_login_password(aur_t *aur, char **error) {
   return update_aursid_from_cookies(aur);
 }
 
-static char *ask_password(const char *user, const char *prompt, size_t maxlen) {
-  struct termios t;
-  char *buf;
-
-  buf = malloc(maxlen + 1);
-  if (buf == NULL)
-    return NULL;
-
-  printf("[%s] %s: ", user, prompt);
-
-  tcgetattr(0, &t);
-  t.c_lflag &= ~ECHO;
-  tcsetattr(0, TCSANOW, &t);
-
-  if (!fgets(buf, maxlen, stdin))
-    return NULL;
-
-  buf[strlen(buf) - 1] = '\0';
-
-  putchar('\n');
-  t.c_lflag |= ECHO;
-  tcsetattr(0, TCSANOW, &t);
-
-  return buf;
-}
-
-static int aur_login_interactive(aur_t *aur, char **error) {
-  char *password;
-  int r;
-
-  password = ask_password(aur->username, "password", 1000);
-  if (password == NULL)
-    return -ENOMEM;
-
-  r = aur_set_password(aur, password);
-  if (r < 0)
-    return r;
-
-  return aur_login_password(aur, error);
-}
-
-int aur_login(aur_t *aur, bool force_password, char **error) {
+int aur_login(aur_t *aur, char **error) {
   if (!aur->username)
     return -EBADR;
-
-  if (!force_password && aur->cookiefile)
-    return aur_login_cookies(aur);
 
   if (aur->password)
     return aur_login_password(aur, error);
 
-  return aur_login_interactive(aur, error);
+  if (aur->cookiefile)
+    return aur_login_cookies(aur);
+
+  return -ENOKEY;
 }
 
 int aur_upload(aur_t *aur, const char *tarball_path,

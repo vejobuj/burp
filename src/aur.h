@@ -13,7 +13,7 @@ int aur_set_password(aur_t *aur, const char *password);
 int aur_set_cookiefile(aur_t *aur, const char *cookiefile);
 int aur_set_debug(aur_t *aur, bool enable);
 
-int aur_login(aur_t *aur, bool force_password, char **error);
+int aur_login(aur_t *aur, char **error);
 int aur_logout(aur_t *aur);
 int aur_upload(aur_t *aur, const char *tarball_path, const char *category,
     char **error);
