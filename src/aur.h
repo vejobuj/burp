@@ -10,8 +10,7 @@ void aur_free(aur_t *aur);
 
 int aur_set_username(aur_t *aur, const char *username);
 int aur_set_password(aur_t *aur, const char *password);
-int aur_set_cookies(aur_t *aur, const char *cookies);
-int aur_set_persist_cookies(aur_t *aur, bool enabled);
+int aur_set_cookiefile(aur_t *aur, const char *cookiefile);
 int aur_set_debug(aur_t *aur, bool enable);
 
 int aur_login(aur_t *aur, bool force_password, char **error);

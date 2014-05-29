@@ -20,10 +20,8 @@ struct aur_t {
 
   char *username;
   char *password;
+  char *cookiefile;
   char *aursid;
-
-  char *cookies;
-  bool persist_cookies;
 
   bool debug;
 
@@ -86,12 +84,10 @@ static int curl_reset(aur_t *aur) {
   if (aur->curl == NULL)
     return -ENOMEM;
 
-  if (aur->cookies) {
-    curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, aur->cookies);
-    if (aur->persist_cookies) {
-      touch(aur->cookies);
-      curl_easy_setopt(aur->curl, CURLOPT_COOKIEJAR, aur->cookies);
-    }
+  if (aur->cookiefile) {
+    touch(aur->cookiefile);
+    curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, aur->cookiefile);
+    curl_easy_setopt(aur->curl, CURLOPT_COOKIEJAR, aur->cookiefile);
   } else
     curl_easy_setopt(aur->curl, CURLOPT_COOKIEFILE, "");
 
@@ -131,7 +127,7 @@ void aur_free(aur_t *aur) {
       aur->domainname);
 
   free(aur->username);
-  free(aur->cookies);
+  free(aur->cookiefile);
   free(aur->domainname);
   free(aur->aursid);
   free(aur->password);
@@ -159,13 +155,8 @@ int aur_set_username(aur_t *aur, const char *username) {
   return copy_string(&aur->username, username);
 }
 
-int aur_set_cookies(aur_t *aur, const char *cookies) {
-  return copy_string(&aur->cookies, cookies);
-}
-
-int aur_set_persist_cookies(aur_t *aur, bool enabled) {
-  aur->persist_cookies = enabled;
-  return 0;
+int aur_set_cookiefile(aur_t *aur, const char *cookies_file) {
+  return copy_string(&aur->cookiefile, cookies_file);
 }
 
 int aur_set_password(aur_t *aur, const char *password) {
@@ -493,7 +484,7 @@ int aur_login(aur_t *aur, bool force_password, char **error) {
   if (!aur->username)
     return -EBADR;
 
-  if (!force_password && aur->cookies)
+  if (!force_password && aur->cookiefile)
     return aur_login_cookies(aur);
 
   if (aur->password)
@@ -557,7 +548,7 @@ int aur_logout(aur_t *aur) {
     return r;
 
   if (aur->aursid == NULL) {
-    if (aur->cookies)
+    if (aur->cookiefile)
       preload_cookiefile(aur);
     else
       return 0;

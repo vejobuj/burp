@@ -59,7 +59,6 @@ static char *arg_username;
 static char *arg_password;
 static char *arg_cookiefile;
 static int arg_loglevel = LOG_WARN;
-static bool arg_persist_cookies;
 static bool arg_expire;
 
 static int category_compare(const void *a, const void *b) {
@@ -199,9 +198,8 @@ static int read_config_file(void) {
         log_error("failed to allocate memory\n");
       else
         arg_cookiefile = v;
-    } else if (streq(key, "Persist")) {
-      arg_persist_cookies = true;
-    }
+    } else
+      log_warn("unknown config entry '%s' on line %d", key, lineno);
   }
 
   return 0;
@@ -235,9 +233,6 @@ static void __attribute__((noreturn)) print_usage(void) {
   /* "      --domain=DOMAIN       Domain of the AUR (default: aur.archlinux.org)\n" */
   "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
   "                              temporary file. Useful with the -k option.\n"
-  "  -k, --keep-cookies        Cookies will be persistent and reused for logins.\n"
-  "                              If you specify this option, you must also provide\n"
-  "                              a path to a cookie file.\n"
   "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
 
   "  -h, --help                display this help and exit\n"
@@ -252,7 +247,6 @@ static int parseargs(int *argc, char ***argv) {
     { "category",      required_argument,  0, 'c' },
     { "expire",        no_argument,        0, 'e' },
     { "help",          no_argument,        0, 'h' },
-    { "keep-cookies",  no_argument,        0, 'k' },
     { "password",      required_argument,  0, 'p' },
     { "user",          required_argument,  0, 'u' },
     { "version",       no_argument,        0, 'V' },
@@ -262,7 +256,7 @@ static int parseargs(int *argc, char ***argv) {
   };
 
   for (;;) {
-    int opt = getopt_long(*argc, *argv, "C:c:ehkp:u:Vv", option_table, NULL);
+    int opt = getopt_long(*argc, *argv, "C:c:ehp:u:Vv", option_table, NULL);
     if (opt < 0)
       break;
 
@@ -283,9 +277,6 @@ static int parseargs(int *argc, char ***argv) {
       break;
     case 'h':
       print_usage();
-    case 'k':
-      arg_persist_cookies = true;
-      break;
     case 'p':
       arg_password = optarg;
       break;
@@ -399,9 +390,7 @@ static int create_aur_client(aur_t **aur) {
   if (arg_password)
     aur_set_password(*aur, arg_password);
   if (arg_cookiefile)
-    aur_set_cookies(*aur, arg_cookiefile);
-  if (arg_persist_cookies)
-    aur_set_persist_cookies(*aur, arg_persist_cookies);
+    aur_set_cookiefile(*aur, arg_cookiefile);
   if (arg_loglevel >= LOG_DEBUG)
     aur_set_debug(*aur, true);
 

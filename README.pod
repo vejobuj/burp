@@ -44,14 +44,8 @@ the -c flag with 'help'.
 
 =item B<-C> I<FILE>, B<--cookies=>I<FILE>
 
-I<FILE> is the path in which to store cookies instead of the default temporary
-file. If this file exists and is in valid Netscape cookie file format, login to
-the AUR will be attempted using these cookies. Also see the -k option.
-
-=item B<-k>, B<--keep-cookies>
-
-Cookies will be persistent and reused for logins. If you specify this option, you must
-also provide a cookie file path with the -C option or in the config file.
+Read and write login cookies from I<FILE>. The file must be a valid Netscape cookie
+file.
 
 =item B<-v>, B<--verbose>
 
@@ -73,7 +67,6 @@ and read default options from it in key=value format. Valid keys are:
 User      = \fIUSER\fR
 Password  = \fIPASSWORD\fR
 Cookies   = \fIFILE\fR
-Persist
 .EB lightgray
 .fi
 .RE
@@ -86,7 +79,6 @@ Persist
 User      = <i>USER</i><br/>
 Password  = <i>PASSWORD</i><br/>
 Cookies   = <i>FILE</i><br/>
-Persist<br/>
 </dd>
 
 =end html
