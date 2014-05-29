@@ -293,6 +293,13 @@ static bool domain_equals(const char *a, const char *b) {
   return a_len == b_len && strncasecmp(a, b, a_len) == 0;
 }
 
+static bool cookie_domain_equals(const char *a, const char *b) {
+  if (strncmp(a, "#HttpOnly_", 10) == 0)
+    a += strlen("#HttpOnly_");
+
+  return domain_equals(a, b);
+}
+
 static int update_aursid_from_cookies(aur_t *aur) {
   _cleanup_slist_ struct curl_slist *cookielist = NULL;
   time_t now = time(NULL);
@@ -309,10 +316,7 @@ static int update_aursid_from_cookies(aur_t *aur) {
         &domain, &expire, &name, &aursid) != 4)
       continue;
 
-    if (strncmp(domain, "#HttpOnly_", 10) == 0) {
-      if (!domain_equals(domain + strlen("#HttpOnly_"), aur->domainname))
-        continue;
-    } else if (!domain_equals(domain, aur->domainname))
+    if (!cookie_domain_equals(domain, aur->domainname))
       continue;
 
     if (!streq(name, "AURSID"))
