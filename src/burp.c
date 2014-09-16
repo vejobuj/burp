@@ -232,8 +232,8 @@ static void __attribute__((noreturn)) print_usage(void) {
   "  -e, --expire              Instead of uploading, expire the current session\n"
   /* leaving --domain undocumented for now */
   /* "      --domain=DOMAIN       Domain of the AUR (default: aur.archlinux.org)\n" */
-  "  -C FILE, --cookies=FILE   Use FILE to store cookies rather than the default\n"
-  "                              temporary file. Useful with the -k option.\n"
+  "  -C FILE, --cookies=FILE   Read and write login cookies from FILE. \n"
+  "                              The file must be a valid Netscape cookie file.\n"
   "  -v, --verbose             be more verbose. Pass twice for debug info.\n\n"
 
   "  -h, --help                display this help and exit\n"
