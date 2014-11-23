@@ -50,6 +50,7 @@ static const struct category_t categories[] = {
   { "office",      "14" },
   { "science",     "15" },
   { "system",      "16" },
+  { "wayland",     "21" },
   { "x11",         "17" },
   { "xfce",        "18" },
 };
