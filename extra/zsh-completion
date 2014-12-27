@@ -42,9 +42,10 @@ _burp() {
     '(-u --user)'{-u,--user}"[AUR login username]: :_users" \
     '(-p --password)'{-p,--password}"[AUR login password]:password" \
     '(-c --category)'{-c,--cat}"[assign the uploaded package with category]: :_burp_categories" \
+    '(-e --expire)'{-e,--expire}"[instead of uploading, expire the current session]" \
     '(-C --cookies)'{-C,--cookies}"[file used to store cookies rather than the default temporary file]: :_files" \
-    '(-k --keep-cookies)'{-k,--keep-cookies}"[cookies will be persistent and reused for logins]" \
     '(-v --verbose)*'{-v,--verbose}"[be more verbose, pass twice for debug info]" \
+    '(-V --version)*'{-V,--version}"[display the version and exit]" \
     ':source package:_files -g \*.src.tar.gz'
 }
 
