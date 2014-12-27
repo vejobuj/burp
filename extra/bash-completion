@@ -8,10 +8,11 @@ _burp() {
   # Valid upload categories
   categories="daemons devel editors emulators fonts games gnome i18n kde
               kernels lib modules multimedia network office science system
-              x11 xfce"
+              wayland x11 xfce"
 
   # Valid longopts
-  opts="-u --user -p --password -c --category -k --keep-cookies -C --cookies -v --verbose"
+  opts="-u --user -p --password -c --category -e --expire -C --cookies
+        -v --verbose -h --help -V --version"
 
   # nullglob avoids problems when no results are found
   shopt -q nullglob || { shopt -s nullglob; ng=1; }
